@@ -1,0 +1,15 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^.*\.xlsx$
+^.*\.qml$
+^.*\.tif$
+^.*\.gpkg$
+^.*\.pdf$
+^.*\.docx$
+^.*\.html$
+^.*\.py$
+^~\$.*$
+^\.DS_Store$
+^\.RData$
+^\.Rhistory$
+^oystermapR\.Rcheck$

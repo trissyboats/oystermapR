@@ -1,0 +1,125 @@
+add_intertidal_flag     Add an intertidal zone flag to a survey
+                        dataframe
+add_season_column       Detect season for each row in a dataframe
+add_shellfish_classification
+                        Add shellfish water quality classification to
+                        scored result
+add_suitability_ci      Add bootstrap confidence intervals to
+                        suitability scores
+analyse_connectivity    Analyse spatial connectivity of suitable
+                        habitat cells
+assess_gear_feasibility
+                        Assess gear deployment feasibility at survey
+                        locations
+auto_tidal_correct      Automatically predict and apply tidal
+                        correction from harmonic constituents
+check_exclusions        Check exclusion criteria for all rows in a
+                        dataset
+classify_substrate_from_backscatter
+                        Classify seabed substrate hardness from
+                        near-seabed ADCP backscatter
+compare_species         Compare suitability across multiple oyster
+                        species
+compare_surveys         Compare suitability scores across multiple
+                        surveys or monitoring years
+composite_seasonal      Combine multi-season survey results into a
+                        composite suitability score
+correct_to_chart_datum
+                        Correct survey depths to Chart Datum (LAT)
+detect_season           Detect meteorological season from date and
+                        latitude
+estimate_chlorophyll_from_backscatter
+                        Estimate chlorophyll-a concentration from ADCP
+                        acoustic backscatter
+estimate_fetch          Estimate effective fetch from a set of lat/lon
+                        points and a bearing
+export_contours         Export optional contour lines as a GeoPackage
+                        for QGIS
+export_geotiff          Export suitability scores as a smooth
+                        interpolated GeoTIFF heatmap for QGIS
+export_qml_style        Export a QGIS colour style (.qml) matching the
+                        BioBase orange/red heatmap
+fetch_live_environmental_data
+                        Fetch live environmental data for a survey
+                        extent
+generate_report         Generate a formatted survey report from
+                        predict_oyster() results
+get_species_tolerances
+                        Get species tolerance parameters
+get_tolerance_posteriors
+                        Retrieve current posterior tolerance parameters
+                        for a species
+identify_resilient_sites
+                        Identify climate-resilient locations
+interpolate_survey      Interpolate survey measurements to a regular
+                        grid before scoring
+list_species            List all supported species
+load_tolerance_update   Load saved Bayesian tolerance updates into
+                        session cache
+merge_sensor_data       Merge multiple sensor datasets into a single
+                        survey table
+oystermapR_help         Print an interactive getting-started guide for
+                        oystermapR
+oystermapR_live_config
+                        Configure live data API credentials for
+                        oystermapR
+parse_opendrift_connectivity
+                        Parse an OpenDrift particle tracking output
+                        into a connectivity matrix
+permutation_importance
+                        Permutation variable importance for suitability
+                        model
+predict_oyster          Predict oyster growth suitability from
+                        environmental survey data
+project_suitability     Project suitability under future climate
+                        scenarios
+qc_survey_data          Run automated quality control on raw survey
+                        data
+read_generic_csv        Read a generic sensor CSV with flexible column
+                        mapping
+read_nortek_adcp        Read and process a Nortek Signature 500 ADCP
+                        CSV file
+read_sonar_tif          Read a bathymetric or sidescan GeoTIFF and
+                        convert to oystermapR variables
+read_soundings_xyz      Read a bathymetric XYZ point cloud and derive
+                        depth, slope and roughness
+reset_tolerance_update
+                        Reset Bayesian tolerance updates for a species
+save_tolerance_update   Save Bayesian tolerance updates to disk
+score_anthropogenic_disturbance
+                        Score anthropogenic disturbance at survey
+                        locations
+score_disease_risk      Score locations for disease and parasite risk
+score_economic_viability
+                        Score economic viability for aquaculture or
+                        restoration
+score_hab_risk          Score harmful algal bloom risk at survey
+                        locations
+score_larval_connectivity
+                        Score larval dispersal connectivity at survey
+                        locations
+score_locations         Score all locations in a dataframe
+score_predation_risk    Score predation and bioturbation pressure at
+                        survey locations
+score_sediment_stability
+                        Score sediment stability and mobility at survey
+                        locations
+score_settlement        Score locations for spat settlement suitability
+score_wave_exposure     Score wave exposure from fetch or measured wave
+                        height
+sensitivity_analysis    Partial dependence / sensitivity analysis for a
+                        scored variable
+smooth_suitability      Apply Gaussian kernel smoothing to suitability
+                        scores
+spatial_block_cv        Spatial block cross-validation for suitability
+                        model evaluation
+stack_surveys           Stack multiple survey runs from the same sensor
+                        type
+tidal_port_info         Look up approximate tidal range for major
+                        European survey ports
+update_species_tolerances
+                        Update species tolerance parameters from field
+                        observations (Bayesian)
+validate_against_records
+                        Validate suitability predictions against known
+                        presence/absence records
