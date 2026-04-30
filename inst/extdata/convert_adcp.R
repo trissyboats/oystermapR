@@ -30,8 +30,8 @@
 library(dplyr)
 
 # ---- Configuration -----------------------------------------------------------
-input_file  <- "path/to/your/S104456A008_AWE_Melfort_merged.csv"  # <- UPDATE THIS
-output_file <- "path/to/output/melfort_adcp_converted.csv"         # <- UPDATE THIS
+input_file  <- "path/to/your/input.csv"  # <- UPDATE THIS
+output_file <- "path/to/output/desired output.csv"         # <- UPDATE THIS
 
 spatial_res  <- 4        # decimal places for lat/lon binning (~11 m at 56°N)
 min_obs      <- 5        # minimum ensembles per cell to include in output
