@@ -177,4 +177,9 @@ If you use `oystermapR` in published work, please cite:
 
 ## License
 
-MIT © T Tucker
+GPL-3 © T Tucker
+
+Free for research, education, and non-commercial use. Commercial entities
+wishing to embed oystermapR in a proprietary product should contact
+tristantucker48@gmail.com to discuss a commercial licence.
+
