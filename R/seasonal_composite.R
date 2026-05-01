@@ -140,10 +140,10 @@ composite_seasonal <- function(surveys,
   suit_class[is.na(composite_suit)] <- "Excluded"
 
   out <- data.frame(
-    lat                  = all_cells$lat_r,
-    lon                  = all_cells$lon_r,
-    suitability          = composite_suit,
-    suitability_class    = suit_class,
+    lat                       = all_cells$lat_r,
+    lon                       = all_cells$lon_r,
+    suitability_composite     = composite_suit,
+    suitability_class         = suit_class,
     n_seasons_present    = n_present,
     suit_range           = apply(suit_mat, 1, function(r) {
       present <- r[!is.na(r)]

@@ -13,3 +13,5 @@
 ^\.RData$
 ^\.Rhistory$
 ^oystermapR\.Rcheck$
+^test_report\.R$
+^.*\.zip$

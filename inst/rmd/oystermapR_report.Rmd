@@ -341,41 +341,49 @@ body {
 </style>
 
 <!-- ── Page header ──────────────────────────────────────────────────────── -->
-<div class="page-header">
-  <h1>`r params$title`</h1>
-  <div class="meta">
-    <span>*`r tol$latin_name`* &mdash; `r tol$common_name`</span>
-    `r if (nchar(params$author) > 0) paste0('<span>', params$author, '</span>')`
-    <span>`r format(Sys.Date(), '%d %B %Y')`</span>
-  </div>
-  <div>
-    <span class="badge">oystermapR `r packageVersion("oystermapR")`</span>
-    &nbsp;
-    <span class="badge">`r tol$data_quality` data quality</span>
-    `r if (!is.null(validation)) '<span class="badge">Validated</span>'`
-  </div>
-</div>
+```{r page-header, results='asis', echo=FALSE}
+cat(paste0(
+  '<div class="page-header">',
+  '<h1>', params$title, '</h1>',
+  '<div class="meta">',
+  '<span><em>', tol$latin_name, '</em> &mdash; ', tol$common_name, '</span>',
+  if (nchar(params$author) > 0) paste0('<span>', params$author, '</span>') else '',
+  '<span>', format(Sys.Date(), '%d %B %Y'), '</span>',
+  '</div>',
+  '<div>',
+  '<span class="badge">oystermapR ', as.character(packageVersion("oystermapR")), '</span>',
+  '&nbsp;',
+  '<span class="badge">', tol$data_quality, ' data quality</span>',
+  if (!is.null(validation)) '<span class="badge">Validated</span>' else '',
+  '</div>',
+  '</div>'
+))
+```
 
 <div class="page-body">
 
 <!-- ── Sidebar ─────────────────────────────────────────────────────────── -->
-<nav class="sidebar">
-  <div class="sidebar-label">Contents</div>
-  <a href="#summary">Executive Summary</a>
-  <a href="#map">Spatial Map</a>
-  <a href="#species">Species Profile</a>
-  <a href="#results">Suitability Results</a>
-  <div class="nav-sub">
-    <a href="#distribution">Score Distribution</a>
-    <a href="#classes">Class Breakdown</a>
-  </div>
-  <a href="#variables">Variable Scoring</a>
-  <a href="#completeness">Data Completeness</a>
-  <a href="#sites">Top Introduction Sites</a>
-  `r if (!is.null(comparison)) '<a href="#competition">Competition Adjustment</a>'`
-  `r if (!is.null(validation)) '<a href="#validation">Validation</a>'`
-  <a href="#methodology">Methodology</a>
-</nav>
+```{r sidebar, results='asis', echo=FALSE}
+cat(paste0(
+  '<nav class="sidebar">',
+  '<div class="sidebar-label">Contents</div>',
+  '<a href="#summary">Executive Summary</a>',
+  '<a href="#map">Spatial Map</a>',
+  '<a href="#species">Species Profile</a>',
+  '<a href="#results">Suitability Results</a>',
+  '<div class="nav-sub">',
+  '<a href="#distribution">Score Distribution</a>',
+  '<a href="#classes">Class Breakdown</a>',
+  '</div>',
+  '<a href="#variables">Variable Scoring</a>',
+  '<a href="#completeness">Data Completeness</a>',
+  '<a href="#sites">Top Introduction Sites</a>',
+  if (!is.null(comparison)) '<a href="#competition">Competition Adjustment</a>' else '',
+  if (!is.null(validation)) '<a href="#validation">Validation</a>' else '',
+  '<a href="#methodology">Methodology</a>',
+  '</nav>'
+))
+```
 
 <!-- ── Main content ────────────────────────────────────────────────────── -->
 <div class="content">
@@ -387,23 +395,23 @@ body {
 <div class="section-title"><span class="icon">📊</span> Executive Summary</div>
 
 <div class="stat-grid">
-  <div class="stat-card">
-    <div class="stat-value">`r n_total`</div>
-    <div class="stat-label">Survey locations</div>
-  </div>
-  <div class="stat-card excl">
-    <div class="stat-value">`r n_excl`</div>
-    <div class="stat-label">Excluded</div>
-  </div>
-  <div class="stat-card orange">
-    <div class="stat-value">`r mean_suit`</div>
-    <div class="stat-label">Mean suitability</div>
-  </div>
-  <div class="stat-card high">
-    <div class="stat-value">`r n_high`</div>
-    <div class="stat-label">High scoring</div>
-  </div>
-  `r if (!is.na(mean_comp)) paste0('<div class="stat-card"><div class="stat-value">', scales::percent(mean_comp, accuracy=1), '</div><div class="stat-label">Mean data completeness</div></div>')`
+<div class="stat-card">
+<div class="stat-value">`r n_total`</div>
+<div class="stat-label">Survey locations</div>
+</div>
+<div class="stat-card excl">
+<div class="stat-value">`r n_excl`</div>
+<div class="stat-label">Excluded</div>
+</div>
+<div class="stat-card orange">
+<div class="stat-value">`r mean_suit`</div>
+<div class="stat-label">Mean suitability</div>
+</div>
+<div class="stat-card high">
+<div class="stat-value">`r n_high`</div>
+<div class="stat-label">High scoring</div>
+</div>
+`r if (!is.na(mean_comp)) knitr::asis_output(paste0('<div class="stat-card"><div class="stat-value">', scales::percent(mean_comp, accuracy=1), '</div><div class="stat-label">Mean data completeness</div></div>'))`
 </div>
 
 ```{r exec-table}
@@ -725,7 +733,7 @@ if ("limiting_factors" %in% names(result)) {
 has_completeness <- "data_completeness" %in% names(result)
 ```
 
-`r if (!has_completeness) '<div class="callout warn"><p><strong>No completeness data.</strong> Run <code>score_locations()</code> with the latest oystermapR to populate the <code>data_completeness</code> column.</p></div>'`
+`r if (!has_completeness) knitr::asis_output('<div class="callout warn"><p><strong>No completeness data.</strong> Run <code>score_locations()</code> with the latest oystermapR to populate the <code>data_completeness</code> column.</p></div>')`
 
 ```{r completeness-chart, eval=has_completeness, fig.height=2.5}
 non_excl <- result[!result$excluded & !is.na(result$data_completeness), ]
@@ -784,7 +792,7 @@ knitr::kable(comp_df, col.names = c("Metric","Value"),
              table.attr = 'class="data-table"', align = c("l","r"))
 ```
 
-`r if (has_completeness && mean(result$data_completeness[!result$excluded], na.rm=TRUE) < 0.5) '<div class="callout warn"><p><strong>Low average data completeness.</strong> Fewer than half of the tolerance-spec variables had data for a typical location. Suitability scores will under-weight missing variables. Consider adding more sensor types (CTD, turbidity, substrate survey) before using results for site selection.</p></div>'`
+`r if (has_completeness && mean(result$data_completeness[!result$excluded], na.rm=TRUE) < 0.5) knitr::asis_output('<div class="callout warn"><p><strong>Low average data completeness.</strong> Fewer than half of the tolerance-spec variables had data for a typical location. Suitability scores will under-weight missing variables. Consider adding more sensor types (CTD, turbidity, substrate survey) before using results for site selection.</p></div>')`
 
 </div>
 

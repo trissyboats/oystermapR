@@ -227,7 +227,7 @@ validate_against_records <- function(predicted,
                      "(2) adjusting AHP weights, (3) checking spatial alignment of records.")
       ))
     } else if (auc >= 0.8) {
-      cli::cli_inform("i" = "AUC >= 0.8: good discrimination.")
+      cli::cli_inform(c("i" = "AUC >= 0.8: good discrimination."))
     }
   }
 

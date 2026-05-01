@@ -153,13 +153,15 @@ permutation_importance <- function(predicted,
 
   # Internal AUC function (trapezoidal; no external packages)
   .auc_from_suit <- function(suit, obs_vec) {
+    # Replace NA suitability (excluded rows) with 0 for AUC purposes
+    suit <- ifelse(is.na(suit), 0, suit)
     thrs <- sort(unique(c(0, suit, 1)), decreasing = TRUE)
     roc  <- lapply(thrs, function(thr) {
       pp   <- suit >= thr
-      tp   <- sum( pp & obs_vec == 1)
-      fp   <- sum( pp & obs_vec == 0)
-      tn   <- sum(!pp & obs_vec == 0)
-      fn   <- sum(!pp & obs_vec == 1)
+      tp   <- sum( pp & obs_vec == 1, na.rm = TRUE)
+      fp   <- sum( pp & obs_vec == 0, na.rm = TRUE)
+      tn   <- sum(!pp & obs_vec == 0, na.rm = TRUE)
+      fn   <- sum(!pp & obs_vec == 1, na.rm = TRUE)
       sens <- if ((tp+fn)>0) tp/(tp+fn) else 0
       spec <- if ((tn+fp)>0) tn/(tn+fp) else 0
       c(fpr = 1-spec, tpr = sens)
@@ -332,6 +334,15 @@ sensitivity_analysis <- function(predicted,
                                   background = NULL,
                                   season     = NULL,
                                   verbose    = TRUE) {
+
+  # \u2500\u2500 Validate species argument \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  if (!is.character(species) || length(species) != 1L) {
+    cli::cli_abort(c(
+      "{.arg species} must be a single character string (e.g. {.val ostrea_edulis}).",
+      "i" = "Did you accidentally pass the records dataframe as the second argument?",
+      "i" = "Correct call: sensitivity_analysis(predicted, species, variable, ...)"
+    ))
+  }
 
   # \u2500\u2500 Load species tolerances (with Bayesian updates) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   tols <- get_species_tolerances(species)

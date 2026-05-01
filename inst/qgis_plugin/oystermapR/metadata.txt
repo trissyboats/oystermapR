@@ -1,0 +1,18 @@
+[general]
+name=oystermapR
+qgisMinimumVersion=3.16
+description=Predict and map oyster habitat suitability from environmental survey data using the oystermapR R package. Outputs include suitability scores, GeoTIFF heatmaps, and printable PDF summaries.
+version=1.0.0
+author=T. Tucker
+email=tristantucker48@gmail.com
+about=oystermapR connects QGIS to the oystermapR R package. Load a survey CSV, choose a species and output folder, and the plugin runs predict_oyster() via Rscript in a background thread. It automatically loads the resulting GeoTIFF and contour layers into your QGIS project and applies the matching QML colour ramp. A printable PDF summary is also generated. Supported species: Ostrea edulis, Magallana gigas, Crassostrea angulata, Ostrea stentina, Ostrea lurida.
+tracker=https://github.com/tristantucker48/oystermapR/issues
+repository=https://github.com/tristantucker48/oystermapR
+hasProcessingProvider=no
+tags=marine,ecology,habitat,oyster,aquaculture,raster,species distribution
+homepage=https://github.com/tristantucker48/oystermapR
+category=Raster
+icon=icon.png
+experimental=False
+deprecated=False
+server=False

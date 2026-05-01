@@ -80,14 +80,20 @@ check_exclusions <- function(df, tolerances) {
     t    <- df[[temp_col]]
     seas <- tolower(df[[seas_col]])
 
-    winter_flag <- seas == "winter" & !is.na(t) & t < excl$temperature_winter$min
-    summer_flag <- seas == "summer" & !is.na(t) & t > excl$temperature_summer$max
+    # Guard: only apply if the species actually defines a seasonal limit
+    if (!is.null(excl$temperature_winter) && !is.null(excl$temperature_winter$min)) {
+      winter_flag <- seas == "winter" & !is.na(t) & t < excl$temperature_winter$min
+      excluded <- excluded | winter_flag
+      reasons[winter_flag] <- lapply(reasons[winter_flag], function(r)
+        c(r, sprintf("winter_temp_too_cold (%.1f < %.1f\u00b0C)", t[winter_flag], excl$temperature_winter$min)))
+    }
 
-    excluded <- excluded | winter_flag | summer_flag
-    reasons[winter_flag] <- lapply(reasons[winter_flag], function(r)
-      c(r, sprintf("winter_temp_too_cold (%.1f < %.1f\u00b0C)", t[winter_flag], excl$temperature_winter$min)))
-    reasons[summer_flag] <- lapply(reasons[summer_flag], function(r)
-      c(r, sprintf("summer_temp_too_hot (%.1f > %.1f\u00b0C)", t[summer_flag], excl$temperature_summer$max)))
+    if (!is.null(excl$temperature_summer) && !is.null(excl$temperature_summer$max)) {
+      summer_flag <- seas == "summer" & !is.na(t) & t > excl$temperature_summer$max
+      excluded <- excluded | summer_flag
+      reasons[summer_flag] <- lapply(reasons[summer_flag], function(r)
+        c(r, sprintf("summer_temp_too_hot (%.1f > %.1f\u00b0C)", t[summer_flag], excl$temperature_summer$max)))
+    }
   }
 
   # ---- 3. Salinity -----------------------------------------------------------
