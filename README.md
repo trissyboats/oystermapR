@@ -1,4 +1,4 @@
-# oystermapR <img src="https://img.shields.io/badge/version-1.0.0-blue" align="right"/>
+# oystermapR <img src="https://img.shields.io/badge/version-1.1.0-blue" align="right"/>
 
 > Predict and map oyster growth suitability from environmental survey data
 
