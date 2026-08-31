@@ -6,7 +6,7 @@
 #'
 #' @description
 #' Runs [predict_oyster()] for every specified species against the same survey
-#' dataset and returns a combined comparison table — one row per survey
+#' dataset and returns a combined comparison table -- one row per survey
 #' location, one suitability column per species. An optional summary prints
 #' which species is best-suited to each location.
 #'
@@ -22,7 +22,7 @@
 #'   individual GeoTIFF heatmaps are exported for each species into that folder.
 #'   Default `NULL` (no rasters written).
 #' @param min_data_quality Character. Minimum data quality tier to include:
-#'   `"low"`, `"medium"`, or `"high"` (default `"low"` — include all species).
+#'   `"low"`, `"medium"`, or `"high"` (default `"low"` -- include all species).
 #'   Set to `"high"` to restrict to well-characterised species only.
 #' @param verbose Logical. Print a comparison summary per species (default `TRUE`).
 #'
@@ -37,23 +37,15 @@
 #'
 #' @export
 #' @examples
-#' \dontrun{
-#' # Compare all supported species
-#' comparison <- compare_species(survey)
-#'
-#' # Compare only well-characterised species
-#' comparison <- compare_species(survey, min_data_quality = "high")
-#'
-#' # Compare specific species and export per-species heatmaps
+#' sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
 #' comparison <- compare_species(
-#'   survey,
-#'   species    = c("ostrea_edulis", "magallana_gigas"),
-#'   output_dir = "comparison_maps/"
+#'   sample_csv,
+#'   species = c("ostrea_edulis", "magallana_gigas"),
+#'   verbose = FALSE
 #' )
-#'
-#' # Find sites suitable for both O. edulis AND M. gigas
+#' # Locations suitable for both species
 #' both_high <- subset(comparison, n_species_high >= 2)
-#' }
+#' nrow(both_high)
 compare_species <- function(data,
                             species          = NULL,
                             output_dir       = NULL,

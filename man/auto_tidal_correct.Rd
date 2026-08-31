@@ -49,7 +49,7 @@ No external data or internet connection is required. Harmonic constituent
 data (amplitude and Greenwich phase lag) for 31 UK and European ports are
 embedded in the package.
 
-\strong{Accuracy:} 5-constituent predictions are typically accurate to ±0.15–0.35 m
+\strong{Accuracy:} 5-constituent predictions are typically accurate to +/-0.15--0.35 m
 at the standard port. Accuracy degrades with distance from the port and in
 areas with complex tidal dynamics (e.g. the Bristol Channel, inner fjords).
 For safety-critical work, use official UKHO EasyTide predictions and supply
@@ -61,14 +61,20 @@ be parseable by \code{\link[=as.POSIXct]{as.POSIXct()}} (e.g. \code{"2024-06-15 
 }
 \examples{
 \dontrun{
-# Automatic correction — finds nearest port, predicts heights, corrects depths
-survey_corrected <- auto_tidal_correct(survey, datetime_col = "date")
+# Minimal survey dataframe near Oban, Scotland
+df <- data.frame(
+  lat   = c(56.41, 56.42, 56.43),
+  lon   = c(-5.47, -5.47, -5.46),
+  depth = c(5.5, 12.0, 8.3),
+  date  = as.POSIXct("2024-06-15 10:30:00", tz = "UTC")
+)
+# Automatic correction: finds Oban as nearest port, predicts tidal heights
+df_corrected <- auto_tidal_correct(df, datetime_col = "date")
+df_corrected[, c("depth", "tidal_height_pred_m")]
 
 # Tighten the distance threshold (only trust ports within 40 km)
-survey_corrected <- auto_tidal_correct(survey, max_port_dist_km = 40)
-
-# See which port was selected and inspect predicted heights
-survey_corrected$tidal_height_pred_m
+df_corrected2 <- auto_tidal_correct(df, datetime_col = "date",
+                                    max_port_dist_km = 40)
 }
 }
 \seealso{

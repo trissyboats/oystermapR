@@ -18,12 +18,12 @@
 #' Reads a plain-text XYZ soundings file (comma or space delimited, optional
 #' `#`-prefixed header), spatially averages onto a regular grid, and derives:
 #'
-#' - **`depth`** — mean depth per cell (metres, positive downward)
-#' - **`roughness`** — rugosity index per cell, derived from intra-cell depth
+#' - **`depth`** -- mean depth per cell (metres, positive downward)
+#' - **`roughness`** -- rugosity index per cell, derived from intra-cell depth
 #'   variance using the surface-area approximation
 #'   `rugosity = sqrt(1 + (depth_sd / cell_size_m)^2)`. Values near 1.0 are
 #'   flat; higher values indicate more complex relief.
-#' - **`slope`** — maximum downslope gradient in degrees, computed by finite
+#' - **`slope`** -- maximum downslope gradient in degrees, computed by finite
 #'   differences between neighbouring grid cells (Horn 1981 method).
 #'
 #' @param file Character. Path to the `.xyz` (or `.csv`) soundings file.
@@ -33,24 +33,23 @@
 #'   positions for longitude, latitude, and depth. If `NULL` (default), the
 #'   function tries common names automatically.
 #' @param spatial_res Integer. Decimal places for lat/lon binning (default `4`,
-#'   approx.11 m at 56°N). The rugosity calculation uses the physical cell size
+#'   approx.11 m at 56degrees N). The rugosity calculation uses the physical cell size
 #'   implied by this resolution.
 #' @param min_soundings Integer. Minimum soundings per cell to include in output
 #'   (default `10`). Cells with fewer soundings produce unreliable statistics.
 #' @param depth_positive Logical. If `TRUE` (default), depth values are already
 #'   positive-downward. Set to `FALSE` if your sonar records depth as negative
-#'   (elevation-style) — values will be negated.
+#'   (elevation-style) -- values will be negated.
 #' @param verbose Logical. Print processing summary (default `TRUE`).
 #'
 #' @return A dataframe with columns `lat`, `lon`, `depth`, `slope`,
-#'   `roughness`, and `n_soundings` — ready for [merge_sensor_data()].
+#'   `roughness`, and `n_soundings` -- ready for [merge_sensor_data()].
 #'
 #' @export
 #' @examples
-#' \dontrun{
-#' bathy <- read_soundings_xyz("kames_bay_soundings.xyz")
-#' survey <- merge_sensor_data(adcp = adcp_data, bathy = bathy)
-#' }
+#' bathy_f <- system.file("extdata", "example_bay_soundings.xyz", package = "oystermapR")
+#' bathy <- read_soundings_xyz(bathy_f, verbose = FALSE)
+#' head(bathy[, c("lat", "lon", "depth")])
 read_soundings_xyz <- function(file,
                                lon_col        = NULL,
                                lat_col        = NULL,
@@ -248,17 +247,17 @@ read_soundings_xyz <- function(file,
 #'
 #' Two modes are supported, selected via the `type` argument:
 #'
-#' **`"bathy"`** — Bathymetric DEM (e.g. from Ping 3DSS or post-processed
+#' **`"bathy"`** -- Bathymetric DEM (e.g. from Ping 3DSS or post-processed
 #' soundings). Extracts:
-#' - `depth` — raster cell value (metres)
-#' - `slope` — computed using [terra::terrain()]
-#' - `roughness` — Terrain Ruggedness Index via [terra::terrain()]
+#' - `depth` -- raster cell value (metres)
+#' - `slope` -- computed using [terra::terrain()]
+#' - `roughness` -- Terrain Ruggedness Index via [terra::terrain()]
 #'
-#' **`"sidescan"`** — Sidescan backscatter mosaic (normalised 0–1 or raw DN).
+#' **`"sidescan"`** -- Sidescan backscatter mosaic (normalised 0--1 or raw DN).
 #' Extracts:
-#' - `substrate_hardness` — backscatter intensity normalised to \[0, 1\].
-#'   High backscatter → hard/coarse substrate (rock, gravel, shell);
-#'   low backscatter → soft substrate (mud, fine sand).
+#' - `substrate_hardness` -- backscatter intensity normalised to \[0, 1\].
+#'   High backscatter -> hard/coarse substrate (rock, gravel, shell);
+#'   low backscatter -> soft substrate (mud, fine sand).
 #'
 #' @param file Character. Path to the GeoTIFF file (`.tif`).
 #' @param type Character. Either `"bathy"` or `"sidescan"`.

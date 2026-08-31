@@ -24,9 +24,10 @@ at least \code{min_class} suitability across all projected scenarios. These are
 the most robust sites for long-term restoration or aquaculture investment.
 }
 \examples{
-\dontrun{
-proj      <- project_suitability(result, tol)
+sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
+tol    <- get_species_tolerances("ostrea_edulis")
+proj   <- project_suitability(result, tol)
 resilient <- identify_resilient_sites(proj, result, min_class = "Moderate")
-nrow(resilient)  # sites that stay Moderate+ even under RCP8.5
-}
+nrow(resilient)
 }

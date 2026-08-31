@@ -49,7 +49,7 @@ Astronomical Tide (LAT), so:
 }
 
 MHWS above CD is approximated from the harmonic constituents of the
-nearest port as: \code{Z0 + 1.1 * (M2_H + S2_H)} — the 10\% factor accounts
+nearest port as: \code{Z0 + 1.1 * (M2_H + S2_H)} -- the 10\% factor accounts
 for minor constituents not included in the 5-constituent model.
 
 This flag is used internally by \code{\link[=score_locations]{score_locations()}} to give \emph{Magallana
@@ -57,11 +57,14 @@ gigas} (Pacific oyster) full depth scores for intertidal cells, reflecting
 its strong intertidal ecology in NW European waters.
 }
 \examples{
-\dontrun{
-survey <- auto_tidal_correct(survey, datetime_col = "date")
-survey <- add_intertidal_flag(survey)
-
-# Check intertidal coverage
-table(survey$intertidal_zone)
-}
+# Minimal survey with chart-datum corrected depths.
+# Positive depth = below Chart Datum (always submerged).
+# Depth near 0 = intertidal zone. Negative = above MHWS (supratidal).
+df <- data.frame(
+  lat   = c(51.50, 51.51, 51.52),
+  lon   = c(-3.18, -3.18, -3.17),
+  depth = c(8.2, 0.4, -0.5)
+)
+df <- add_intertidal_flag(df, verbose = FALSE)
+table(df$intertidal_zone)
 }

@@ -17,9 +17,9 @@ parameters, and seasonal scoring overrides for each supported oyster species.
 
 \strong{Structure per species entry:}
 \itemize{
-\item \code{exclusions}         — hard-stop limits; location is excluded if breached
-\item \code{scored}             — weighted variables contributing to the 0-1 score
-\item \code{seasonal_overrides} — season-specific parameter swaps for scored variables
+\item \code{exclusions}         -- hard-stop limits; location is excluded if breached
+\item \code{scored}             -- weighted variables contributing to the 0-1 score
+\item \code{seasonal_overrides} -- season-specific parameter swaps for scored variables
 }
 
 \strong{Adding a new species:} append a named list entry following the same

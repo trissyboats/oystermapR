@@ -33,7 +33,7 @@ If NULL (default), all rows are used.}
 }
 \value{
 A dataframe with columns \code{source_lat}, \code{source_lon}, \code{dest_lat},
-\code{dest_lon}, \code{weight} — ready for passing to
+\code{dest_lon}, \code{weight} -- ready for passing to
 \code{\link[=score_larval_connectivity]{score_larval_connectivity()}}.
 }
 \description{
@@ -45,9 +45,9 @@ expected by \code{score_larval_connectivity(connectivity_matrix = ...)}.
 Run OpenDrift (\code{OceanDrift} or \code{OpenOil} adapted for larvae) seeding particles
 at each source reef location. Export a CSV with at minimum:
 \itemize{
-\item \code{origin_lat}, \code{origin_lon} — seed position
-\item \code{final_lat}, \code{final_lon} — settlement position (stranded or settled)
-\item \code{status} — filter to \code{"stranded"} or \code{"active"} as appropriate
+\item \code{origin_lat}, \code{origin_lon} -- seed position
+\item \code{final_lat}, \code{final_lon} -- settlement position (stranded or settled)
+\item \code{status} -- filter to \code{"stranded"} or \code{"active"} as appropriate
 }
 
 The function bins particles into a grid and computes the fraction of particles

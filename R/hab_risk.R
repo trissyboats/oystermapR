@@ -31,24 +31,24 @@
 #' bloom event frequency and, where available, nutrient and stratification data.
 #'
 #' **Input options (in priority order):**
-#' 1. `hab_data` — manually supplied dataframe of historical HAB events
+#' 1. `hab_data` -- manually supplied dataframe of historical HAB events
 #'    (see Details).
-#' 2. `fetch_live = TRUE` — queries the ICES HAB database for event records
+#' 2. `fetch_live = TRUE` -- queries the ICES HAB database for event records
 #'    within the survey extent and a specified date range. Requires internet
 #'    access and the `httr` package.
-#' 3. Neither — returns a fixed background-level risk (0.1) with a warning.
+#' 3. Neither -- returns a fixed background-level risk (0.1) with a warning.
 #'
 #' @section hab_data format:
 #' A dataframe with columns:
-#' - `lat`, `lon` — event coordinates (decimal degrees)
-#' - `date` — event date (Date or character "YYYY-MM-DD")
-#' - `genus` (optional) — bloom genus (e.g. "Alexandrium", "Pseudo-nitzschia")
-#' - `toxin` (optional) — toxin class (PSP, ASP, DSP, AZP) — affects severity weight
-#' - `closure_days` (optional) — number of days the area was closed; default 1
+#' - `lat`, `lon` -- event coordinates (decimal degrees)
+#' - `date` -- event date (Date or character "YYYY-MM-DD")
+#' - `genus` (optional) -- bloom genus (e.g. "Alexandrium", "Pseudo-nitzschia")
+#' - `toxin` (optional) -- toxin class (PSP, ASP, DSP, AZP) -- affects severity weight
+#' - `closure_days` (optional) -- number of days the area was closed; default 1
 #'   per event if absent
 #'
 #' @param result Dataframe from [predict_oyster()]. Must contain `lat`, `lon`.
-#'   Optional: `din_ug_l` (dissolved inorganic nitrogen µg/L) and
+#'   Optional: `din_ug_l` (dissolved inorganic nitrogen ugg/L) and
 #'   `temp_surface_c` / `temp_bottom_c` for stratification index.
 #' @param hab_data Dataframe of historical HAB events (see Details), or NULL.
 #' @param fetch_live Logical. Query ICES HAB database (default FALSE).
@@ -57,7 +57,7 @@
 #'   Default: last 10 years.
 #' @param match_radius_m Numeric. Radius in metres for event aggregation
 #'   (default 5000 m = 5 km, consistent with ICES monitoring station spacing).
-#' @param species Character. Target species — affects toxin severity weights
+#' @param species Character. Target species -- affects toxin severity weights
 #'   (`"ostrea_edulis"` or `"magallana_gigas"`).
 #' @param verbose Logical. Default TRUE.
 #'
@@ -70,16 +70,20 @@
 #'
 #' @export
 #' @examples
-#' \dontrun{
-#' # Manual data
-#' hab <- data.frame(lat=52.1, lon=-4.5, date="2022-07-15",
-#'                   genus="Alexandrium", toxin="PSP", closure_days=14)
-#' result <- score_hab_risk(result, hab_data=hab, species="ostrea_edulis")
+#' sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+#' result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
 #'
-#' # Live ICES fetch
-#' result <- score_hab_risk(result, fetch_live=TRUE,
-#'                          date_range=c("2015-01-01","2024-12-31"))
-#' }
+#' # Manual HAB data
+#' hab <- data.frame(
+#'   lat          = c(50.25),
+#'   lon          = c(-4.12),
+#'   date         = "2022-07-15",
+#'   genus        = "Alexandrium",
+#'   toxin        = "PSP",
+#'   closure_days = 14
+#' )
+#' result <- score_hab_risk(result, hab_data = hab, species = "ostrea_edulis")
+#' table(result$hab_risk_class)
 score_hab_risk <- function(result,
                             hab_data      = NULL,
                             fetch_live    = FALSE,

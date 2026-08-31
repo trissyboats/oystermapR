@@ -23,11 +23,11 @@ stacked via \code{\link[=stack_surveys]{stack_surveys()}} before merging:
 }\if{html}{\out{</div>}}}
 
 \item{spatial_res}{Integer. Decimal places for the common spatial grid
-(default \code{4}, approx.11 m at 56°N). Must be the same or coarser than the
+(default \code{4}, approx.11 m at 56degrees N). Must be the same or coarser than the
 resolution used when reading each individual sensor.}
 
 \item{date_source}{Character. Name of the dataset to take the \code{date} column
-from (default \code{NULL} — uses the first dataset that contains a \code{date}
+from (default \code{NULL} -- uses the first dataset that contains a \code{date}
 column).}
 
 \item{verbose}{Logical. Print a merge summary (default \code{TRUE}).}
@@ -35,7 +35,7 @@ column).}
 \value{
 A single dataframe with all oystermapR-compatible columns populated
 from their respective sensor sources. Columns that weren't available from
-any sensor will be absent from the result — \code{\link[=predict_oyster]{predict_oyster()}} handles
+any sensor will be absent from the result -- \code{\link[=predict_oyster]{predict_oyster()}} handles
 missing columns gracefully.
 }
 \description{
@@ -44,22 +44,15 @@ Takes any number of sensor dataframes (from \code{\link[=read_nortek_adcp]{read_
 single table ready for \code{\link[=predict_oyster]{predict_oyster()}}.
 
 Each dataset is first rounded to a common spatial resolution grid. Datasets
-are then joined using the grid cell key — cells that exist in multiple
+are then joined using the grid cell key -- cells that exist in multiple
 datasets are merged; cells that exist in only one dataset carry \code{NA} for
 variables from other sensors.
 }
 \examples{
-\dontrun{
-# Single run per sensor
-adcp    <- read_nortek_adcp("adcp.csv")
-biobase <- read_generic_csv("biobase.csv")
-survey  <- merge_sensor_data(adcp = adcp, biobase = biobase)
-
-# Multiple ADCP runs (different survey days) — automatically stacked
-adcp1  <- read_nortek_adcp("survey_jan.csv")
-adcp2  <- read_nortek_adcp("survey_feb.csv")
-survey <- merge_sensor_data(adcp = list(adcp1, adcp2), biobase = biobase)
-
-result <- predict_oyster(survey, "ostrea_edulis", output_geotiff = "map.tif")
-}
+adcp_f <- system.file("extdata", "example_bay_adcp.csv", package = "oystermapR")
+ctd_f  <- system.file("extdata", "example_bay_ctd.csv",  package = "oystermapR")
+adcp   <- read_nortek_adcp(adcp_f, verbose = FALSE)
+ctd    <- read_generic_csv(ctd_f,  verbose = FALSE)
+survey <- merge_sensor_data(adcp = adcp, ctd = ctd)
+head(survey[, c("lat", "lon", "current_velocity", "temperature")])
 }

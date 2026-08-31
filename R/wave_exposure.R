@@ -76,7 +76,7 @@
 #' @param verbose Logical. Default TRUE.
 #'
 #' @return `result` with additional columns:
-#'   - `wave_hs_m`: significant wave height (m) — computed or supplied
+#'   - `wave_hs_m`: significant wave height (m) -- computed or supplied
 #'   - `wave_exposure_score` \[0,1\]: 0 = fully sheltered, 1 = severely exposed
 #'   - `wave_exposure_class`: "Sheltered" / "Moderate" / "Exposed" / "Severe"
 #'   - `wave_exposure_note`: gear implication flag
@@ -84,20 +84,15 @@
 #'
 #' @export
 #' @examples
-#' \dontrun{
-#' # Fetch column in result
-#' result$fetch_km <- c(2.5, 8.0, 25.0, 45.0)
-#' result <- score_wave_exposure(result, fetch_col = "fetch_km")
+#' sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+#' result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
 #'
 #' # Uniform fetch for a sheltered sea loch
 #' result <- score_wave_exposure(result, fetch_km = 3.5)
+#' table(result$wave_exposure_class)
 #'
-#' # Measured wave height column
-#' result <- score_wave_exposure(result, wave_height_col = "hs_m")
-#'
-#' # Depth proxy only (coarse)
-#' result <- score_wave_exposure(result)
-#' }
+#' # Depth proxy only (no fetch data)
+#' result2 <- score_wave_exposure(result)
 score_wave_exposure <- function(result,
                                  fetch_col       = NULL,
                                  wave_height_col = NULL,
@@ -236,7 +231,7 @@ score_wave_exposure <- function(result,
 #' @description
 #' Simple great-circle ray-tracing to estimate how far open water extends
 #' from a point in a given direction, up to `max_fetch_km`. This is a
-#' lightweight GIS-free approximation — for precise fetch, use QGIS or
+#' lightweight GIS-free approximation -- for precise fetch, use QGIS or
 #' the `fetchR` R package.
 #'
 #' @param lat Numeric. Site latitude (decimal degrees).

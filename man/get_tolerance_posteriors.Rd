@@ -22,9 +22,7 @@ after any \code{\link[=update_species_tolerances]{update_species_tolerances()}} 
 returns the built-in prior parameters unchanged.
 }
 \examples{
-\dontrun{
-# After calling update_species_tolerances()
+# Returns NULL if no Bayesian update has been run this session
 post <- get_tolerance_posteriors("ostrea_edulis")
 post$temperature  # updated optimal_min, optimal_max with CIs
-}
 }

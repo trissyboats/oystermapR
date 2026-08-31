@@ -113,7 +113,7 @@
 #'   - `n_records`: number of matched records used
 #'   - `loglik_null`: log-likelihood of intercept-only model
 #'   - `loglik_fit`: log-likelihood at MAP/posterior mean
-#'   - `mcfadden_r2`: 1 - loglik_fit / loglik_null (pseudo-R²)
+#'   - `mcfadden_r2`: 1 - loglik_fit / loglik_null (pseudo-R^2)
 #'   - `updated_params`: named list of updated parameter values per variable
 #'   - `posterior_sd`: named list of posterior SD per parameter (from Laplace/MCMC)
 #'   - `prior_params`: the parameter values before updating (for comparison)
@@ -134,32 +134,31 @@
 #'   [save_tolerance_update()], [load_tolerance_update()]
 #'
 #' @examples
-#' \dontrun{
 #' # Field records with presence/absence + environmental measurements
 #' records <- data.frame(
-#'   lat      = c(51.5, 51.6, 51.7, 51.8, 51.4),
-#'   lon      = c(-4.1, -4.2, -4.0, -4.3, -4.0),
-#'   presence = c(1, 1, 0, 0, 1),
-#'   temperature = c(16.2, 17.1, 12.3, 11.0, 15.8),
-#'   salinity    = c(32, 33, 31, 30, 34),
-#'   depth       = c(5, 8, 15, 20, 3)
+#'   lat      = c(51.5, 51.6, 51.7, 51.8, 51.4, 51.55, 51.65, 51.72,
+#'                51.83, 51.42, 51.50, 51.60, 51.70, 51.80, 51.40,
+#'                51.53, 51.63, 51.73, 51.83, 51.43),
+#'   lon      = c(-4.1, -4.2, -4.0, -4.3, -4.0, -4.15, -4.22, -4.01,
+#'                -4.32, -4.03, -4.11, -4.21, -4.01, -4.31, -4.00,
+#'                -4.13, -4.23, -4.02, -4.30, -4.01),
+#'   presence = c(1,1,0,0,1, 1,1,0,0,1, 1,0,0,1,1, 0,1,1,0,1),
+#'   temperature = c(16.2,17.1,12.3,11.0,15.8, 16.5,17.0,12.5,11.2,
+#'                   15.5, 16.0,17.3,12.0,11.5,15.9, 16.8,17.2,12.1,
+#'                   11.1,15.6),
+#'   salinity = c(32,33,31,30,34, 32,33,31,30,34, 33,33,31,31,34,
+#'                32,33,32,30,34),
+#'   depth    = c(5,8,15,20,3, 6,9,14,18,4, 5,10,16,19,3,
+#'                7,8,15,20,4)
 #' )
 #'
 #' fit <- update_species_tolerances(
-#'   records = records,
-#'   species = "ostrea_edulis",
-#'   update_vars = c("temperature", "salinity", "depth")
+#'   records     = records,
+#'   species     = "ostrea_edulis",
+#'   update_vars = c("temperature", "salinity", "depth"),
+#'   min_records = 20L
 #' )
-#'
-#' # See updated parameters
 #' get_tolerance_posteriors("ostrea_edulis")
-#'
-#' # Re-run predict_oyster — it will automatically use updated parameters
-#' result <- predict_oyster(survey, "ostrea_edulis")
-#'
-#' # Save to disk for next session
-#' save_tolerance_update("ostrea_edulis")
-#' }
 update_species_tolerances <- function(records,
                                        species,
                                        update_vars       = NULL,
@@ -609,11 +608,9 @@ update_species_tolerances <- function(records,
 #'
 #' @export
 #' @examples
-#' \dontrun{
-#' # After calling update_species_tolerances()
+#' # Returns NULL if no Bayesian update has been run this session
 #' post <- get_tolerance_posteriors("ostrea_edulis")
 #' post$temperature  # updated optimal_min, optimal_max with CIs
-#' }
 get_tolerance_posteriors <- function(species, var = NULL) {
   cached <- .get_cached_tolerances(species)
   if (is.null(cached)) return(NULL)
@@ -638,10 +635,8 @@ get_tolerance_posteriors <- function(species, var = NULL) {
 #' @return Invisibly NULL.
 #' @export
 #' @examples
-#' \dontrun{
 #' reset_tolerance_update("ostrea_edulis")
 #' reset_tolerance_update("all")
-#' }
 reset_tolerance_update <- function(species = "all", verbose = TRUE) {
   if (species == "all") {
     n <- length(.oystermapR_env$posterior_cache)
@@ -667,21 +662,41 @@ reset_tolerance_update <- function(species = "all", verbose = TRUE) {
 #' [load_tolerance_update()].
 #'
 #' @param species Character. Species key or `"all"` to save all cached species.
-#' @param path Character. Directory to save into (default: user cache directory
-#'   `~/.oystermapR/`). Created if absent.
+#' @param path Character. Directory to save into (default:
+#'   `tools::R_user_dir("oystermapR", "data")`). Created if absent.
 #' @param verbose Logical. Default TRUE.
 #'
 #' @return Invisibly: path(s) to saved file(s).
 #' @export
 #' @examples
-#' \dontrun{
-#' save_tolerance_update("ostrea_edulis")
-#' save_tolerance_update("all", path = "data/bayes_updates/")
-#' }
+#' # Build a Bayesian update first (populates the session cache)
+#' records <- data.frame(
+#'   lat = c(51.5, 51.6, 51.7, 51.8, 51.4, 51.55, 51.65, 51.72,
+#'           51.83, 51.42, 51.50, 51.60, 51.70, 51.80, 51.40,
+#'           51.53, 51.63, 51.73, 51.83, 51.43),
+#'   lon = c(-4.1, -4.2, -4.0, -4.3, -4.15, -4.05, -4.25, -4.12,
+#'           -4.08, -4.18, -4.11, -4.21, -4.01, -4.31, -4.16,
+#'           -4.06, -4.26, -4.13, -4.09, -4.19),
+#'   temperature = c(12, 13, 11, 14, 12.5, 13.5, 11.5, 12.8,
+#'                   13.2, 11.8, 12.1, 13.1, 11.1, 14.1, 12.4,
+#'                   13.4, 11.4, 12.7, 13.3, 11.7),
+#'   salinity = c(34, 35, 33, 36, 34.5, 35.5, 33.5, 34.8,
+#'                35.2, 33.8, 34.1, 35.1, 33.1, 36.1, 34.4,
+#'                35.4, 33.4, 34.7, 35.3, 33.7),
+#'   depth = c(5, 8, 12, 3, 7, 10, 6, 9, 4, 11, 5.5, 8.5,
+#'             12.5, 3.5, 7.5, 10.5, 6.5, 9.5, 4.5, 11.5),
+#'   presence = c(1L, 1L, 1L, 0L, 1L, 1L, 1L, 1L, 0L, 1L,
+#'                1L, 1L, 0L, 0L, 1L, 1L, 1L, 1L, 0L, 1L)
+#' )
+#' update_species_tolerances(records, "ostrea_edulis",
+#'   update_vars = c("temperature", "salinity", "depth"),
+#'   min_records = 20L, verbose = FALSE)
+#' tmp <- file.path(tempdir(), "bayes_updates")
+#' save_tolerance_update("ostrea_edulis", path = tmp, verbose = FALSE)
 save_tolerance_update <- function(species = "all",
-                                   path    = "~/.oystermapR",
+                                   path    = tools::R_user_dir("oystermapR", which = "data"),
                                    verbose = TRUE) {
-  if (!dir.exists(path)) dir.create(path, recursive = TRUE)
+  if (!dir.exists(path)) dir.create(path, recursive = TRUE, showWarnings = FALSE)
 
   species_to_save <- if (species == "all") {
     names(.oystermapR_env$posterior_cache)
@@ -720,19 +735,41 @@ save_tolerance_update <- function(species = "all",
 #'
 #' @param species Character. Species key or `"all"` to load all `.rds` files
 #'   in `path`.
-#' @param path Character. Directory to load from (default: `~/.oystermapR/`).
+#' @param path Character. Directory to load from (default:
+#'   `tools::R_user_dir("oystermapR", "data")`).
 #' @param verbose Logical. Default TRUE.
 #'
 #' @return Invisibly: the loaded tolerance list.
 #' @export
 #' @examples
-#' \dontrun{
-#' load_tolerance_update("ostrea_edulis")
-#' # Now predict_oyster() uses the updated tolerances automatically
-#' result <- predict_oyster(survey, "ostrea_edulis")
-#' }
+#' # Save a Bayesian update to tempdir first, then load it back
+#' records <- data.frame(
+#'   lat = c(51.5, 51.6, 51.7, 51.8, 51.4, 51.55, 51.65, 51.72,
+#'           51.83, 51.42, 51.50, 51.60, 51.70, 51.80, 51.40,
+#'           51.53, 51.63, 51.73, 51.83, 51.43),
+#'   lon = c(-4.1, -4.2, -4.0, -4.3, -4.15, -4.05, -4.25, -4.12,
+#'           -4.08, -4.18, -4.11, -4.21, -4.01, -4.31, -4.16,
+#'           -4.06, -4.26, -4.13, -4.09, -4.19),
+#'   temperature = c(12, 13, 11, 14, 12.5, 13.5, 11.5, 12.8,
+#'                   13.2, 11.8, 12.1, 13.1, 11.1, 14.1, 12.4,
+#'                   13.4, 11.4, 12.7, 13.3, 11.7),
+#'   salinity = c(34, 35, 33, 36, 34.5, 35.5, 33.5, 34.8,
+#'                35.2, 33.8, 34.1, 35.1, 33.1, 36.1, 34.4,
+#'                35.4, 33.4, 34.7, 35.3, 33.7),
+#'   depth = c(5, 8, 12, 3, 7, 10, 6, 9, 4, 11, 5.5, 8.5,
+#'             12.5, 3.5, 7.5, 10.5, 6.5, 9.5, 4.5, 11.5),
+#'   presence = c(1L, 1L, 1L, 0L, 1L, 1L, 1L, 1L, 0L, 1L,
+#'                1L, 1L, 0L, 0L, 1L, 1L, 1L, 1L, 0L, 1L)
+#' )
+#' update_species_tolerances(records, "ostrea_edulis",
+#'   update_vars = c("temperature", "salinity", "depth"),
+#'   min_records = 20L, verbose = FALSE)
+#' tmp <- file.path(tempdir(), "bayes_updates")
+#' save_tolerance_update("ostrea_edulis", path = tmp, verbose = FALSE)
+#' reset_tolerance_update("ostrea_edulis")           # clear cache
+#' load_tolerance_update("ostrea_edulis", path = tmp) # reload
 load_tolerance_update <- function(species = "all",
-                                   path    = "~/.oystermapR",
+                                   path    = tools::R_user_dir("oystermapR", which = "data"),
                                    verbose = TRUE) {
   if (species == "all") {
     files <- list.files(path, pattern = "^bayes_update_.*\\.rds$", full.names = TRUE)

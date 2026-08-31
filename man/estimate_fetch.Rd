@@ -33,6 +33,6 @@ Numeric. Estimated fetch in km.
 \description{
 Simple great-circle ray-tracing to estimate how far open water extends
 from a point in a given direction, up to \code{max_fetch_km}. This is a
-lightweight GIS-free approximation — for precise fetch, use QGIS or
+lightweight GIS-free approximation -- for precise fetch, use QGIS or
 the \code{fetchR} R package.
 }

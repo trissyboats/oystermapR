@@ -37,17 +37,18 @@ Input dataframe with additional columns:
 \verb{qc_flag_<varname>} for each checked variable (\code{"ok"}, \code{"range_fail"},
 \code{"outlier"}, \code{"gradient_fail"}, \code{"cross_fail"}),
 \code{qc_n_flags} (integer count of flags per row),
-\code{qc_status} (\code{"pass"}, \code{"review"}, \code{"fail"} — fail = 3+ flags on one row).
+\code{qc_status} (\code{"pass"}, \code{"review"}, \code{"fail"} -- fail = 3+ flags on one row).
 }
 \description{
 Detects and flags suspect sensor readings before they enter the suitability
 model. Three complementary checks are applied to each numeric column:
 \enumerate{
-\item \strong{Range check} — values outside the physically plausible range for that
-variable (e.g. temperature > 35°C in temperate coastal water, salinity42 PSU) are flagged as "range_fail".
-\item \strong{Statistical outlier} — values beyond \code{iqr_k} × IQR from the median
+\item \strong{Range check} -- values outside the physically plausible range for that
+variable (e.g. temperature above 35degrees C in temperate coastal water, salinity
+above 42 PSU) are flagged as \code{"range_fail"}.
+\item \strong{Statistical outlier} -- values beyond \code{iqr_k} x IQR from the median
 are flagged as \code{"outlier"} (default k = 3, Tukey's outer fence).
-\item \strong{Temporal gradient} — when a \code{datetime} column is present and data is
+\item \strong{Temporal gradient} -- when a \code{datetime} column is present and data is
 sorted chronologically, sequential differences exceeding the
 \code{max_gradient} threshold are flagged as \code{"gradient_fail"} (instrument
 spike or data entry error).
@@ -56,27 +57,30 @@ spike or data entry error).
 Additionally, \strong{cross-variable sanity checks} flag physically implausible
 combinations:
 \itemize{
-\item Dissolved oxygen > 20 mg/L with temperature < 5°C (likely sensor error)
-\item Salinity < 5 PSU with temperature > 25°C (likely freshwater intrusion
+\item Dissolved oxygen > 20 mg/L with temperature < 5degrees C (likely sensor error)
+\item Salinity < 5 PSU with temperature > 25degrees C (likely freshwater intrusion
 instrument error, not a real coastal reading)
-\item Chlorophyll_a > 50 µg/L (extreme bloom or sensor fouling)
+\item Chlorophyll_a > 50 ugg/L (extreme bloom or sensor fouling)
 }
 
-Flagged values are \strong{not removed} — they are marked in a \verb{qc_flag_<col>}
+Flagged values are \strong{not removed} -- they are marked in a \verb{qc_flag_<col>}
 column so the user can decide whether to replace with NA, correct, or
 accept them. A summary \code{qc_n_flags} column counts total flags per row.
 }
 \examples{
-\dontrun{
-# Run QC before modelling
-survey_qc <- qc_survey_data(survey, datetime_col = "timestamp")
+# Minimal survey with one out-of-range temperature value
+df <- data.frame(
+  lat         = c(51.5, 51.6, 51.7),
+  lon         = c(-3.2, -3.2, -3.1),
+  temperature = c(12.1, 99.0, 11.8),   # 99 degC is an instrument spike
+  salinity    = c(33.1, 33.4, 33.0),
+  depth       = c(8.0, 9.0, 7.5)
+)
+qc <- qc_survey_data(df, apply_flags = FALSE, verbose = TRUE)
+# Inspect any flags raised
+flagged <- subset(qc, qc_status \%in\% c("review", "fail"))
+flagged[, c("temperature", "qc_flag_temperature", "qc_status")]
 
-# Inspect flagged rows
-flagged <- subset(survey_qc, qc_status \%in\% c("review","fail"))
-View(flagged)
-
-# Apply flags (replace flagged values with NA) before scoring
-survey_clean <- qc_survey_data(survey, apply_flags = TRUE)
-result <- predict_oyster(survey_clean, "ostrea_edulis")
-}
+# Apply flags: replace bad values with NA before scoring
+df_clean <- qc_survey_data(df, apply_flags = TRUE, verbose = FALSE)
 }

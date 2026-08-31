@@ -29,45 +29,35 @@ isolated (default 3 cells).}
 }
 \value{
 Input dataframe with additional columns:
-\code{patch_id} (integer — unique patch identifier; NA for non-suitable cells),
+\code{patch_id} (integer -- unique patch identifier; NA for non-suitable cells),
 \code{patch_size} (number of cells in the patch),
 \code{patch_area_km2} (approximate area based on cell density),
 \code{connectivity_class} (\code{"isolated"}, \code{"small"}, \code{"moderate"}, \code{"large"}),
-\code{is_hub} (logical — TRUE for the highest-scoring cell in each patch,
+\code{is_hub} (logical -- TRUE for the highest-scoring cell in each patch,
 useful as candidate introduction points).
 }
 \description{
 Builds a spatial graph of cells above a suitability threshold and identifies
-connected components — contiguous patches of suitable habitat. Isolated
+connected components -- contiguous patches of suitable habitat. Isolated
 cells or small patches are flagged because they are at higher risk of:
 \itemize{
-\item \strong{Recruitment failure} — larvae from isolated populations may be
+\item \strong{Recruitment failure} -- larvae from isolated populations may be
 flushed away before settling back in the patch.
-\item \strong{Genetic bottlenecks} — small isolated populations have lower allelic
+\item \strong{Genetic bottlenecks} -- small isolated populations have lower allelic
 diversity and reduced adaptive capacity.
-\item \strong{Local extinction without recolonisation} — if a patch is lost, there
+\item \strong{Local extinction without recolonisation} -- if a patch is lost, there
 are no connected source populations to recolonise.
 }
 
 Two cells are considered connected if they are within \code{gap_m} metres of
-each other (default 500 m — approximately the scale of larval dispersal
+each other (default 500 m -- approximately the scale of larval dispersal
 during a tidal cycle at moderate current speeds). Connectivity is computed
-using a fast union-find (disjoint set) algorithm — no external graph
+using a fast union-find (disjoint set) algorithm -- no external graph
 packages required.
 }
 \examples{
-\dontrun{
-result <- predict_oyster(survey, "ostrea_edulis")
+sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
 result <- analyse_connectivity(result, gap_m = 500)
-
-# Large well-connected patches are the best restoration targets
-good_patches <- subset(result,
-  connectivity_class == "large" & suitability_class == "High")
-
-# Count patches
 table(result$connectivity_class)
-
-# Visualise — patch_id maps to distinct colours in QGIS
-export_geotiff(result, "connectivity.tif")
-}
 }

@@ -20,7 +20,7 @@ estimate_chlorophyll_from_backscatter(
 and depth columns.}
 
 \item{backscatter_col}{Character. Name of the column containing volume
-backscatter strength values (Sv in dB re 1 m^-¹). For Nortek Signature
+backscatter strength values (Sv in dB re 1 \eqn{m^{-1}}). For Nortek Signature
 outputs, this is typically the mean amplitude across clean bins, available
 as \code{amp_mean_dB} after \code{\link[=read_nortek_adcp]{read_nortek_adcp()}}.}
 
@@ -35,10 +35,10 @@ frequency-based defaults. Derive from concurrent water samples:
 fit \code{log10(observed_chl) ~ backscatter} and extract intercept (\code{b}) and
 slope (\code{a}).}
 
-\item{min_chl}{Numeric. Floor for estimated chlorophyll-a in µg/L
+\item{min_chl}{Numeric. Floor for estimated chlorophyll-a in ugg/L
 (default \code{0.05}). Prevents physically implausible negative estimates.}
 
-\item{max_chl}{Numeric. Ceiling for estimated chlorophyll-a in µg/L
+\item{max_chl}{Numeric. Ceiling for estimated chlorophyll-a in ugg/L
 (default \code{50}). Values above this are likely turbidity artefacts (non-algal
 particles dominating backscatter).}
 
@@ -49,7 +49,7 @@ particles dominating backscatter).}
 }
 \value{
 The input dataframe with an additional \code{chlorophyll_a} column
-(µg/L). If a \code{chlorophyll_a} column already exists, a warning is issued
+(ugg/L). If a \code{chlorophyll_a} column already exists, a warning is issued
 and the existing column is overwritten.
 }
 \description{
@@ -59,7 +59,7 @@ strength (Sv) and chlorophyll-a concentration to add an estimated
 a fluorometer was not deployed and the ADCP backscatter intensity is
 available.
 
-The conversion is: \verb{Chl_a (µg/L) = 10 ^ (a · Sv + b)}
+The conversion is: \code{Chl_a (ugg/L) = 10 ^ (a * Sv + b)}
 
 Default \code{a} and \code{b} constants are derived from Deines (1999) for three
 common ADCP frequencies (300, 600, 1200 kHz). For best results, calibrate
@@ -68,7 +68,7 @@ argument.
 }
 \section{Improving accuracy with water samples}{
 
-Collect 5–15 grab/Niskin water samples distributed across your survey area
+Collect 5--15 grab/Niskin water samples distributed across your survey area
 and depth range, then:
 
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{# Fit calibration from samples
@@ -82,16 +82,12 @@ df   <- estimate_chlorophyll_from_backscatter(
 }
 
 \examples{
-\dontrun{
-# Default calibration (300 kHz Nortek Signature)
-adcp <- read_nortek_adcp("survey.csv")
-adcp <- estimate_chlorophyll_from_backscatter(
-          adcp, backscatter_col = "amp_mean_dB",
-          frequency_khz = 300)
-
-# Custom calibration from water samples
-adcp <- estimate_chlorophyll_from_backscatter(
-          adcp, "amp_mean_dB", frequency_khz = 300,
-          calibration = c(a = 0.041, b = -0.52))
+adcp_f <- system.file("extdata", "example_bay_adcp.csv", package = "oystermapR")
+adcp   <- read_nortek_adcp(adcp_f, verbose = FALSE)
+# estimate_chlorophyll_from_backscatter requires an amp_mean_dB column
+# produced by read_nortek_adcp when the ADCP data contains amplitude bins
+if ("amp_mean_dB" \%in\% names(adcp)) {
+  adcp <- estimate_chlorophyll_from_backscatter(adcp, "amp_mean_dB",
+    frequency_khz = 300)
 }
 }

@@ -39,7 +39,7 @@ with a warning.}
 A named list:
 \itemize{
 \item \code{auc}: numeric [0,1]
-\item \code{optimal_threshold}: numeric [0,1] — Youden's J
+\item \code{optimal_threshold}: numeric [0,1] -- Youden's J
 \item \code{sensitivity}: numeric [0,1] at optimal threshold
 \item \code{specificity}: numeric [0,1] at optimal threshold
 \item \code{f1}: numeric [0,1] at optimal threshold
@@ -47,7 +47,7 @@ A named list:
 \item \code{brier_score}: numeric [0,1]
 \item \code{n_presences}: integer
 \item \code{n_absences}: integer
-\item \code{n_unmatched}: integer — records dropped due to no nearby prediction
+\item \code{n_unmatched}: integer -- records dropped due to no nearby prediction
 \item \code{roc_df}: dataframe with columns \code{threshold}, \code{sensitivity},
 \code{specificity} (for custom plotting)
 }
@@ -78,18 +78,15 @@ above 0.4 generally indicate useful predictive skill.
 }
 }
 \examples{
-\dontrun{
-# Load known flat oyster records (e.g. from NBN Atlas CSV export)
-records <- read.csv("nbn_ostrea_edulis.csv")
-
-# Run prediction on same area
-result <- predict_oyster(survey, "ostrea_edulis")
-
-# Validate
-val <- validate_against_records(result, records,
-                                 presence_col = "presence")
-val$auc           # overall discrimination power
-val$tss           # skill score
-val$roc_df        # data for custom ggplot
-}
+sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
+# Synthetic balanced presence/absence records for demonstration
+set.seed(42)
+records <- data.frame(
+  lat      = result$lat[1:60],
+  lon      = result$lon[1:60],
+  presence = as.integer(runif(60) > 0.4)
+)
+val <- validate_against_records(result, records, presence_col = "presence")
+val$auc
 }

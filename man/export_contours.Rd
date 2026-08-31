@@ -24,8 +24,9 @@ vector GeoPackage (\code{.gpkg}). Load alongside the heatmap in QGIS for the
 depth-contour look shown in BioBase outputs.
 }
 \examples{
-\dontrun{
-export_geotiff(result, "oyster_heatmap.tif")
-export_contours("oyster_heatmap.tif")
-}
+sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
+out_tif <- file.path(tempdir(), "oyster_heatmap.tif")
+export_geotiff(result, out_tif)
+export_contours(out_tif)
 }

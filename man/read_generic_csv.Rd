@@ -38,7 +38,7 @@ name matching using built-in synonym lists (case-insensitive).}
 \item{min_obs}{Integer. Minimum observations per cell (default \code{3}).}
 
 \item{categorical_cols}{Character vector. Column names (after mapping) that
-should be treated as categorical — mode (most common value) is returned
+should be treated as categorical -- mode (most common value) is returned
 instead of mean. Default: \code{c("sediment_type", "benthic_communities", "biotope", "fishing_intensity")}.}
 
 \item{verbose}{Logical. Print a summary after loading (default \code{TRUE}).}
@@ -52,15 +52,7 @@ sidescan export, etc.) and maps its columns to the standard oystermapR
 variable names. Performs spatial averaging at a specified resolution.
 }
 \examples{
-\dontrun{
-# Lowrance BioBase export (automatic column matching)
-biobase <- read_generic_csv("biobase_export.csv")
-
-# With explicit column mapping
-probe <- read_generic_csv(
-  "ctd_data.csv",
-  col_map = c(lat="Lat", lon="Lon", temperature="Temp", salinity="Sal",
-              dissolved_oxygen="DO_mgl")
-)
-}
+ctd_f <- system.file("extdata", "example_bay_ctd.csv", package = "oystermapR")
+ctd <- read_generic_csv(ctd_f, verbose = FALSE)
+head(ctd[, c("lat", "lon", "temperature", "salinity")])
 }

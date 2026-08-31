@@ -44,20 +44,20 @@ averaged dataframe suitable for \code{\link[=merge_sensor_data]{merge_sensor_dat
 
 Two modes are supported, selected via the \code{type} argument:
 
-\strong{\code{"bathy"}} — Bathymetric DEM (e.g. from Ping 3DSS or post-processed
+\strong{\code{"bathy"}} -- Bathymetric DEM (e.g. from Ping 3DSS or post-processed
 soundings). Extracts:
 \itemize{
-\item \code{depth} — raster cell value (metres)
-\item \code{slope} — computed using \code{\link[terra:terrain]{terra::terrain()}}
-\item \code{roughness} — Terrain Ruggedness Index via \code{\link[terra:terrain]{terra::terrain()}}
+\item \code{depth} -- raster cell value (metres)
+\item \code{slope} -- computed using \code{\link[terra:terrain]{terra::terrain()}}
+\item \code{roughness} -- Terrain Ruggedness Index via \code{\link[terra:terrain]{terra::terrain()}}
 }
 
-\strong{\code{"sidescan"}} — Sidescan backscatter mosaic (normalised 0–1 or raw DN).
+\strong{\code{"sidescan"}} -- Sidescan backscatter mosaic (normalised 0--1 or raw DN).
 Extracts:
 \itemize{
-\item \code{substrate_hardness} — backscatter intensity normalised to [0, 1].
-High backscatter → hard/coarse substrate (rock, gravel, shell);
-low backscatter → soft substrate (mud, fine sand).
+\item \code{substrate_hardness} -- backscatter intensity normalised to [0, 1].
+High backscatter -> hard/coarse substrate (rock, gravel, shell);
+low backscatter -> soft substrate (mud, fine sand).
 }
 }
 \examples{

@@ -12,10 +12,10 @@
 #' cell, summarising suitability across all input surveys.
 #'
 #' **Composite methods:**
-#' - `"min"` (default) — most conservative; a location must be suitable in
+#' - `"min"` (default) -- most conservative; a location must be suitable in
 #'   *every* season to score well. Best for regulatory site selection.
-#' - `"mean"` — average across seasons. Good for monitoring trend summaries.
-#' - `"prob"` — fraction of seasons with suitability >= `prob_threshold`.
+#' - `"mean"` -- average across seasons. Good for monitoring trend summaries.
+#' - `"prob"` -- fraction of seasons with suitability >= `prob_threshold`.
 #'   Useful when surveys are irregularly spaced or some seasons are missing.
 #'
 #' Spatial matching uses a grid cell tolerance of `cell_deg` decimal degrees
@@ -38,19 +38,17 @@
 #'
 #' @export
 #' @examples
-#' \dontrun{
-#' spring <- predict_oyster(survey_spring, "ostrea_edulis")
-#' summer <- predict_oyster(survey_summer, "ostrea_edulis")
-#' autumn <- predict_oyster(survey_autumn, "ostrea_edulis")
+#' # Simulate three seasonal surveys using the bundled sample data
+#' sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+#' spring <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
+#' summer <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
+#' autumn <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
 #'
 #' composite <- composite_seasonal(
 #'   surveys = list(spring = spring, summer = summer, autumn = autumn),
 #'   method  = "min"
 #' )
-#'
-#' generate_report(composite, "composite_report.html",
-#'                 title = "Year-round Suitability Assessment")
-#' }
+#' head(composite[, c("lat", "lon", "suitability_composite", "suitability_class")])
 composite_seasonal <- function(surveys,
                                 method          = c("min", "mean", "prob"),
                                 prob_threshold  = 0.5,
@@ -120,7 +118,9 @@ composite_seasonal <- function(surveys,
     n_incomplete <- sum(n_present < length(season_names))
     if (n_incomplete > 0) {
       cli::cli_warn(c(
-        "!" = paste0("{n_incomplete} cell{?s} missing data in at least one season."),
+        "!" = paste0(n_incomplete, " ",
+                     if (n_incomplete == 1L) "cell" else "cells",
+                     " missing data in at least one season."),
         "i" = "These cells have composite suitability = NA (method = 'min').",
         "i" = "Use method = 'mean' or 'prob' to include partially covered cells."
       ))

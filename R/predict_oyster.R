@@ -8,11 +8,17 @@
 #' QGIS visualisation.
 #'
 #' @param data A dataframe or a file path to a CSV file. Must contain at minimum:
-#'   - **`lon`** / **`lng`** / **`longitude`** — longitude in decimal degrees
-#'   - **`lat`** / **`latitude`** — latitude in decimal degrees
-#'   - **`date`** — observation date (any format coercible by `as.Date()`)
+#'   - **`lon`** / **`lng`** / **`longitude`** -- longitude in decimal degrees
+#'   - **`lat`** / **`latitude`** -- latitude in decimal degrees
+#'   - **`date`** -- observation date (any format coercible by `as.Date()`)
 #'   Additional environmental columns are matched automatically; see
 #'   **Column Naming** below.
+#'
+#'   **Aragonite auto-calculation:** if the data contains `ph` (or a recognised
+#'   synonym) and `alkalinity` columns alongside `temperature` and `salinity`,
+#'   `predict_oyster()` will automatically compute `omega_aragonite` using the
+#'   in-house [calculate_aragonite()] function before scoring. You can also
+#'   pre-compute it and supply `omega_aragonite` directly.
 #'
 #' @param species Character string identifying the target oyster species.
 #'   Accepts the key (`"ostrea_edulis"`), latin name, or common name.
@@ -41,13 +47,13 @@
 #' | Longitude             | `lon`, `lng`, `longitude`, `x`                       |
 #' | Latitude              | `lat`, `latitude`, `y`                               |
 #' | Date                  | `date`, `datetime`, `timestamp`                      |
-#' | Temperature (°C)      | `temperature`, `temp`, `temp_c`                      |
+#' | Temperature (degrees C)      | `temperature`, `temp`, `temp_c`                      |
 #' | Salinity (PSU)        | `salinity`, `sal`, `salinity_psu`                    |
 #' | Dissolved oxygen (mg/L)| `dissolved_oxygen`, `do`, `do_mgl`, `oxygen`        |
 #' | Depth (m)             | `depth`, `depth_m`                                   |
 #' | Current velocity (m/s)| `current_velocity`, `velocity`, `current`, `u_mean`  |
-#' | Shear stress (N/m²)   | `shear_stress`, `tau`, `bed_shear`, `shear`          |
-#' | Chlorophyll-a (µg/L)  | `chlorophyll_a`, `chla`, `chl_a`, `chlorophyll`      |
+#' | Shear stress (N/m^2)   | `shear_stress`, `tau`, `bed_shear`, `shear`          |
+#' | Chlorophyll-a (ugg/L)  | `chlorophyll_a`, `chla`, `chl_a`, `chlorophyll`      |
 #' | Turbidity (NTU)       | `turbidity`, `ntu`, `turb`                           |
 #' | Slope (degrees)       | `slope`, `slope_deg`                                 |
 #' | Roughness / rugosity  | `roughness`, `rugosity`                              |
@@ -56,6 +62,9 @@
 #' | Benthic communities   | `benthic_communities`, `benthic`, `community`        |
 #' | Biotope               | `biotope`, `biotopes`, `habitat`                     |
 #' | Fishing intensity     | `fishing_intensity`, `fishing`, `fishing_observed`   |
+#' | pH                    | `ph`, `pH`, `seawater_ph`, `sea_ph`, `water_ph`      |
+#' | Total alkalinity (umol/kg) | `alkalinity`, `total_alkalinity`, `ta`, `alk`, `alkalinity_umol_kg` |
+#' | Aragonite saturation  | `omega_aragonite`, `omega_arag`, `aragonite_saturation` |
 #'
 #' @return A dataframe (invisibly) with all original columns plus:
 #'   - **`season`**: detected season at each location/date.
@@ -71,20 +80,20 @@
 #'
 #' @export
 #' @examples
+#' sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+#' result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
+#' table(result$suitability_class)
+#'
 #' \dontrun{
-#' # Using a CSV file
-#' result <- predict_oyster(
-#'   data    = "my_survey.csv",
-#'   species = "ostrea_edulis",
-#'   output_geotiff = "oyster_suitability.tif"
-#' )
-#'
-#' # Using a dataframe
-#' df <- read.csv("survey_data.csv")
-#' result <- predict_oyster(df, species = "ostrea_edulis", verbose = TRUE)
-#'
-#' # View top locations
-#' subset(result, suitability_class == "High")
+#' # Full pipeline from raw sensor files
+#' adcp_f  <- system.file("extdata", "example_bay_adcp.csv",      package = "oystermapR")
+#' bathy_f <- system.file("extdata", "example_bay_soundings.xyz", package = "oystermapR")
+#' ctd_f   <- system.file("extdata", "example_bay_ctd.csv",       package = "oystermapR")
+#' adcp   <- read_nortek_adcp(adcp_f,    verbose = FALSE)
+#' bathy  <- read_soundings_xyz(bathy_f, verbose = FALSE)
+#' ctd    <- read_generic_csv(ctd_f,     verbose = FALSE)
+#' survey <- merge_sensor_data(adcp = adcp, bathy = bathy, ctd = ctd)
+#' predict_oyster(survey, "ostrea_edulis", verbose = FALSE)
 #' }
 predict_oyster <- function(data,
                            species,
@@ -142,13 +151,16 @@ predict_oyster <- function(data,
     df$season <- NA_character_
   }
 
-  # ---- 5. Apply exclusion criteria -------------------------------------------
+  # ---- 5. Auto-calculate aragonite saturation if pH + alkalinity present -----
+  df <- .auto_calculate_aragonite(df, verbose = verbose)
+
+  # ---- 6. Apply exclusion criteria -------------------------------------------
   df <- check_exclusions(df, tolerances)
 
-  # ---- 6. Score non-excluded locations ---------------------------------------
+  # ---- 7. Score non-excluded locations ---------------------------------------
   df <- score_locations(df, tolerances, verbose = verbose)
 
-  # ---- 7. Export GeoTIFF if requested ----------------------------------------
+  # ---- 8. Export GeoTIFF if requested ----------------------------------------
   if (!isFALSE(output_geotiff)) {
     tif_path <- if (isTRUE(output_geotiff)) {
       file.path(getwd(), paste0(gsub(" ", "_", tolower(tolerances$latin_name)),
@@ -232,7 +244,7 @@ predict_oyster <- function(data,
 #'
 #' @description
 #' Identifies the highest-scoring, spatially spread-out locations for oyster
-#' introduction. Uses a greedy selection that prevents clustering — once a site
+#' introduction. Uses a greedy selection that prevents clustering -- once a site
 #' is chosen, no other site within `min_spacing_deg` is considered, so the
 #' result always represents distinct areas of the survey.
 #'

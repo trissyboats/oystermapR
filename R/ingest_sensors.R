@@ -39,39 +39,38 @@
 #'
 #' @param file Character. Path to the Nortek merged CSV file.
 #' @param spatial_res Integer. Decimal places for lat/lon binning (default `4`,
-#'   approx.11 m cells at 56°N). Reduce to `3` (~111 m) for coarser surveys.
+#'   approx.11 m cells at 56degrees N). Reduce to `3` (~111 m) for coarser surveys.
 #' @param min_obs Integer. Minimum number of raw ensembles per spatial cell
 #'   to include in output (default `5`). Cells with fewer observations are
 #'   dropped as unreliable.
 #' @param max_plausible_speed Numeric. Speed in m/s above which a reading is
-#'   considered a sidelobe spike (default `1.5` m/s — appropriate for sheltered
+#'   considered a sidelobe spike (default `1.5` m/s -- appropriate for sheltered
 #'   coastal/loch environments). Increase to `2.5` for open coast surveys.
 #' @param sidelobe_threshold Numeric. Fraction of readings in a bin that must
 #'   exceed `max_plausible_speed` before the bin is flagged as contaminated
 #'   (default `0.10`, i.e. 10%).
-#' @param rho Numeric. Seawater density in kg/m³ (default `1025`).
+#' @param rho Numeric. Seawater density in kg/m^3 (default `1025`).
 #' @param Cd Numeric. Drag coefficient for bed shear stress calculation
 #'   (default `0.002`, typical for mixed sandy/rocky coastal seabed).
 #' @param verbose Logical. Print processing summary (default `TRUE`).
 #'
 #' @return A dataframe with one row per spatial cell containing:
-#'   - `lat`, `lon` — cell centroid coordinates
-#'   - `date` — earliest observation date in cell (character, `"YYYY-MM-DD"`)
-#'   - `current_velocity` — mean speed from deepest clean bin (m/s)
-#'   - `current_velocity_sd` — standard deviation within cell (m/s)
-#'   - `current_velocity_p95` — 95th percentile speed (m/s)
-#'   - `shear_stress` — estimated bed shear stress (N/m²)
-#'   - `shear_stress_quality` — `"good"`, `"moderate"`, or `"low"`
-#'   - `n_ensembles` — raw ensembles averaged into this cell
-#'   - `bins_used` — which velocity bins contributed (e.g. `"bin1"`)
-#'   - `bins_excluded` — which bins were removed as contaminated
+#'   - `lat`, `lon` -- cell centroid coordinates
+#'   - `date` -- earliest observation date in cell (character, `"YYYY-MM-DD"`)
+#'   - `current_velocity` -- mean speed from deepest clean bin (m/s)
+#'   - `current_velocity_sd` -- standard deviation within cell (m/s)
+#'   - `current_velocity_p95` -- 95th percentile speed (m/s)
+#'   - `shear_stress` -- estimated bed shear stress (N/m^2)
+#'   - `shear_stress_quality` -- `"good"`, `"moderate"`, or `"low"`
+#'   - `n_ensembles` -- raw ensembles averaged into this cell
+#'   - `bins_used` -- which velocity bins contributed (e.g. `"bin1"`)
+#'   - `bins_excluded` -- which bins were removed as contaminated
 #'
 #' @export
 #' @examples
-#' \dontrun{
-#' adcp <- read_nortek_adcp("S104456A008_AWE_Melfort_merged.csv")
-#' print(adcp)
-#' }
+#' adcp_f <- system.file("extdata", "example_bay_adcp.csv", package = "oystermapR")
+#' adcp <- read_nortek_adcp(adcp_f, verbose = FALSE)
+#' head(adcp[, c("lat", "lon", "current_velocity")])
 read_nortek_adcp <- function(file,
                              spatial_res          = 4L,
                              min_obs              = 5L,
@@ -296,7 +295,7 @@ read_nortek_adcp <- function(file,
 #' @param spatial_res Integer. Decimal places for spatial binning (default `4`).
 #' @param min_obs Integer. Minimum observations per cell (default `3`).
 #' @param categorical_cols Character vector. Column names (after mapping) that
-#'   should be treated as categorical — mode (most common value) is returned
+#'   should be treated as categorical -- mode (most common value) is returned
 #'   instead of mean. Default: `c("sediment_type", "benthic_communities",
 #'   "biotope", "fishing_intensity")`.
 #' @param verbose Logical. Print a summary after loading (default `TRUE`).
@@ -305,17 +304,9 @@ read_nortek_adcp <- function(file,
 #'
 #' @export
 #' @examples
-#' \dontrun{
-#' # Lowrance BioBase export (automatic column matching)
-#' biobase <- read_generic_csv("biobase_export.csv")
-#'
-#' # With explicit column mapping
-#' probe <- read_generic_csv(
-#'   "ctd_data.csv",
-#'   col_map = c(lat="Lat", lon="Lon", temperature="Temp", salinity="Sal",
-#'               dissolved_oxygen="DO_mgl")
-#' )
-#' }
+#' ctd_f <- system.file("extdata", "example_bay_ctd.csv", package = "oystermapR")
+#' ctd <- read_generic_csv(ctd_f, verbose = FALSE)
+#' head(ctd[, c("lat", "lon", "temperature", "salinity")])
 read_generic_csv <- function(file,
                              col_map         = NULL,
                              spatial_res     = 4L,
@@ -515,7 +506,7 @@ read_generic_csv <- function(file,
 #' overlapping cells onto a common spatial grid. Non-overlapping cells are
 #' kept as-is.
 #'
-#' This is the right tool when you have repeated surveys of the same area —
+#' This is the right tool when you have repeated surveys of the same area --
 #' rather than picking one run, overlapping cells are averaged across all runs
 #' which improves noise reduction. Non-overlapping cells (different survey
 #' extents) are preserved.
@@ -526,21 +517,18 @@ read_generic_csv <- function(file,
 #' @param ... Two or more dataframes of the same sensor type. Each must contain
 #'   `lat` and `lon` columns.
 #' @param spatial_res Integer. Decimal places for the common spatial grid
-#'   (default `4`, approx.11 m at 56°N).
+#'   (default `4`, approx.11 m at 56degrees N).
 #' @param verbose Logical. Print a summary (default `TRUE`).
 #'
 #' @return A single spatially averaged dataframe combining all input surveys.
 #'
 #' @export
 #' @examples
-#' \dontrun{
-#' # Stack two ADCP runs before merging with other sensors
-#' adcp_mon <- read_nortek_adcp("survey_monday.csv")
-#' adcp_thu <- read_nortek_adcp("survey_thursday.csv")
-#' adcp_all <- stack_surveys(adcp_mon, adcp_thu)
-#'
-#' survey <- merge_sensor_data(adcp = adcp_all, bathy = bathy_df)
-#' }
+#' adcp_f <- system.file("extdata", "example_bay_adcp.csv", package = "oystermapR")
+#' run1 <- read_nortek_adcp(adcp_f, verbose = FALSE)
+#' run2 <- read_nortek_adcp(adcp_f, verbose = FALSE)
+#' adcp_all <- stack_surveys(run1, run2)
+#' nrow(adcp_all)
 stack_surveys <- function(..., spatial_res = 4L, verbose = TRUE) {
 
   dfs <- list(...)
@@ -620,7 +608,7 @@ stack_surveys <- function(..., spatial_res = 4L, verbose = TRUE) {
 #' single table ready for [predict_oyster()].
 #'
 #' Each dataset is first rounded to a common spatial resolution grid. Datasets
-#' are then joined using the grid cell key — cells that exist in multiple
+#' are then joined using the grid cell key -- cells that exist in multiple
 #' datasets are merged; cells that exist in only one dataset carry `NA` for
 #' variables from other sensors.
 #'
@@ -639,33 +627,26 @@ stack_surveys <- function(..., spatial_res = 4L, verbose = TRUE) {
 #'   )
 #'   ```
 #' @param spatial_res Integer. Decimal places for the common spatial grid
-#'   (default `4`, approx.11 m at 56°N). Must be the same or coarser than the
+#'   (default `4`, approx.11 m at 56degrees N). Must be the same or coarser than the
 #'   resolution used when reading each individual sensor.
 #' @param date_source Character. Name of the dataset to take the `date` column
-#'   from (default `NULL` — uses the first dataset that contains a `date`
+#'   from (default `NULL` -- uses the first dataset that contains a `date`
 #'   column).
 #' @param verbose Logical. Print a merge summary (default `TRUE`).
 #'
 #' @return A single dataframe with all oystermapR-compatible columns populated
 #'   from their respective sensor sources. Columns that weren't available from
-#'   any sensor will be absent from the result — [predict_oyster()] handles
+#'   any sensor will be absent from the result -- [predict_oyster()] handles
 #'   missing columns gracefully.
 #'
 #' @export
 #' @examples
-#' \dontrun{
-#' # Single run per sensor
-#' adcp    <- read_nortek_adcp("adcp.csv")
-#' biobase <- read_generic_csv("biobase.csv")
-#' survey  <- merge_sensor_data(adcp = adcp, biobase = biobase)
-#'
-#' # Multiple ADCP runs (different survey days) — automatically stacked
-#' adcp1  <- read_nortek_adcp("survey_jan.csv")
-#' adcp2  <- read_nortek_adcp("survey_feb.csv")
-#' survey <- merge_sensor_data(adcp = list(adcp1, adcp2), biobase = biobase)
-#'
-#' result <- predict_oyster(survey, "ostrea_edulis", output_geotiff = "map.tif")
-#' }
+#' adcp_f <- system.file("extdata", "example_bay_adcp.csv", package = "oystermapR")
+#' ctd_f  <- system.file("extdata", "example_bay_ctd.csv",  package = "oystermapR")
+#' adcp   <- read_nortek_adcp(adcp_f, verbose = FALSE)
+#' ctd    <- read_generic_csv(ctd_f,  verbose = FALSE)
+#' survey <- merge_sensor_data(adcp = adcp, ctd = ctd)
+#' head(survey[, c("lat", "lon", "current_velocity", "temperature")])
 merge_sensor_data <- function(...,
                               spatial_res = 4L,
                               date_source = NULL,
@@ -782,4 +763,592 @@ merge_sensor_data <- function(...,
   }
 
   merged
+}
+
+
+# =============================================================================
+# read_nortek_aquadopp()
+# Nortek Aquadopp Profiler ASCII export (AquaPro software)
+# =============================================================================
+
+#' Read a Nortek Aquadopp Profiler ASCII export
+#'
+#' @description
+#' Reads the ASCII velocity export produced by Nortek's **AquaPro** software
+#' from an Aquadopp Profiler deployment. The function accepts two common export
+#' layouts:
+#'
+#' - **ENU CSV** -- a single file with named columns for east, north, and up
+#'   velocity per depth bin (e.g. `East_1`, `North_1`, `East_2`, ...) plus
+#'   optional time, temperature, and pressure columns.
+#' - **Separate beam files** -- the companion `.sen` (sensor) file providing
+#'   time, temperature, and pressure, and the `.v1`/`.v2` files providing
+#'   beam velocities. Supply the `.sen` path to `file` and set
+#'   `beam_files = c("survey.v1", "survey.v2", "survey.v3")`.
+#'
+#' Because Aquadopp instruments are often moored at a single location rather
+#' than vessel-mounted, GPS coordinates may not be embedded in the export. In
+#' that case supply `lat` and `lon` directly; all output rows receive that
+#' fixed position.
+#'
+#' @param file Character. Path to the AquaPro ENU CSV export, or path to the
+#'   `.sen` file when using separate beam files.
+#' @param beam_files Character vector. Paths to `.v1`, `.v2`, `.v3` beam
+#'   velocity files (optional). If `NULL` (default) the function reads velocity
+#'   from named columns in `file`.
+#' @param lat Numeric. Fixed latitude for moored deployments (decimal degrees).
+#'   Required when GPS columns are absent from the export.
+#' @param lon Numeric. Fixed longitude for moored deployments (decimal degrees).
+#'   Required when GPS columns are absent from the export.
+#' @param spatial_res Integer. Decimal places for lat/lon binning (default `4`).
+#'   For moored deployments all ensembles share one position and this parameter
+#'   has no practical effect.
+#' @param min_obs Integer. Minimum ensembles per grid cell (default `5`).
+#' @param max_plausible_speed Numeric. Upper speed threshold for outlier
+#'   removal in m/s (default `2.5`; Aquadopp profilers can measure stronger
+#'   tidal flows than vessel-mounted ADCPs).
+#' @param rho Numeric. Water density in kg/m^3 (default `1025`).
+#' @param Cd Numeric. Drag coefficient for bed shear stress (default `0.002`).
+#' @param verbose Logical. Print progress messages (default `TRUE`).
+#'
+#' @return A dataframe with columns `lat`, `lon`, `current_speed`,
+#'   `bed_shear_stress`, `shear_stress_quality`, and optionally `temperature`,
+#'   `pressure_dbar`, and `date` -- ready for [merge_sensor_data()].
+#'
+#' @export
+#' @examples
+#' \dontrun{
+#' # Moored deployment (fixed position)
+#' adcp <- read_nortek_aquadopp(
+#'   "harbour_mouth_aqd.csv",
+#'   lat = 56.512, lon = -5.403
+#' )
+#'
+#' # Vessel-mounted with GPS columns in the file
+#' adcp <- read_nortek_aquadopp("transect_enu.csv")
+#'
+#' survey <- merge_sensor_data(adcp = adcp, bathy = bathy)
+#' }
+read_nortek_aquadopp <- function(file,
+                                  beam_files          = NULL,
+                                  lat                 = NULL,
+                                  lon                 = NULL,
+                                  spatial_res         = 4L,
+                                  min_obs             = 5L,
+                                  max_plausible_speed = 2.5,
+                                  rho                 = 1025,
+                                  Cd                  = 0.002,
+                                  verbose             = TRUE) {
+
+  if (!file.exists(file)) cli::cli_abort("File not found: {.file {file}}")
+  if (verbose) cli::cli_inform("Reading Nortek Aquadopp data from {.file {file}}...")
+
+  # ---- Read primary file ------------------------------------------------------
+  raw <- utils::read.csv(file, stringsAsFactors = FALSE, check.names = FALSE)
+  n_raw <- nrow(raw)
+  if (verbose) cli::cli_inform("  {n_raw} ensembles loaded.")
+
+  # ---- Detect velocity columns ------------------------------------------------
+  # Support AquaPro ENU layout: East_1/North_1/Up_1 ... East_N/North_N/Up_N
+  # Also handle VelEast_1, VelNorth_1 variants
+  east_cols  <- sort(grep("^(East|VelEast|Vel_E|U)_?[0-9]+$",  names(raw), value = TRUE, ignore.case = TRUE))
+  north_cols <- sort(grep("^(North|VelNorth|Vel_N|V)_?[0-9]+$", names(raw), value = TRUE, ignore.case = TRUE))
+
+  # ---- Optionally read beam files (.v1/.v2/.v3) -------------------------------
+  if (!is.null(beam_files) && length(east_cols) == 0) {
+    if (verbose) cli::cli_inform("  Reading {length(beam_files)} beam file(s)...")
+    beam_list <- lapply(beam_files, function(bf) {
+      if (!file.exists(bf)) {
+        cli::cli_warn("Beam file not found: {.file {bf}} -- skipping.")
+        return(NULL)
+      }
+      utils::read.table(bf, header = FALSE, stringsAsFactors = FALSE)
+    })
+    beam_list <- Filter(Negate(is.null), beam_list)
+    if (length(beam_list) >= 2) {
+      # Beams 1 and 2 approximate East and North in standard Aquadopp orientation
+      b1 <- beam_list[[1]]; b2 <- beam_list[[2]]
+      n_bins_beam <- ncol(b1)
+      for (i in seq_len(n_bins_beam)) {
+        raw[[paste0("East_",  i)]]  <- suppressWarnings(as.numeric(b1[, i]))
+        raw[[paste0("North_", i)]]  <- suppressWarnings(as.numeric(b2[, i]))
+      }
+      east_cols  <- paste0("East_",  seq_len(n_bins_beam))
+      north_cols <- paste0("North_", seq_len(n_bins_beam))
+    }
+  }
+
+  if (length(east_cols) == 0 || length(north_cols) == 0) {
+    cli::cli_abort(c(
+      "No velocity bin columns detected.",
+      "i" = "Expected ENU columns like {.val East_1}, {.val North_1}, {.val East_2} ...",
+      "i" = "Or use {.arg beam_files} to supply separate .v1/.v2/.v3 files.",
+      "i" = "Columns found: {.val {names(raw)}}"
+    ))
+  }
+
+  n_bins <- min(length(east_cols), length(north_cols))
+  if (verbose) cli::cli_inform("  {n_bins} velocity depth bin{?s} detected.")
+
+  # ---- Compute speed magnitude ------------------------------------------------
+  speed_matrix <- matrix(NA_real_, nrow = n_raw, ncol = n_bins)
+  for (i in seq_len(n_bins)) {
+    e <- suppressWarnings(as.numeric(raw[[east_cols[i]]]))
+    n <- suppressWarnings(as.numeric(raw[[north_cols[i]]]))
+    speed_matrix[, i] <- sqrt(e^2 + n^2)
+  }
+
+  # Clip outliers
+  speed_matrix[speed_matrix > max_plausible_speed] <- NA_real_
+
+  # Use deepest bin with non-NA data for near-bed velocity
+  valid_per_bin  <- colSums(!is.na(speed_matrix))
+  usable_bins    <- which(valid_per_bin >= max(1, n_raw * 0.10))
+  deepest_usable <- if (length(usable_bins) > 0) max(usable_bins) else 1
+
+  primary_speed  <- speed_matrix[, deepest_usable]
+  shear_quality  <- ifelse(deepest_usable == 1, "low",
+                    ifelse(deepest_usable <= ceiling(n_bins / 2), "moderate", "good"))
+
+  if (verbose && deepest_usable < n_bins) {
+    cli::cli_inform(c(
+      "i" = "Deepest usable bin: {deepest_usable} of {n_bins}.",
+      "i" = "Shear stress quality: {.val {shear_quality}}."
+    ))
+  }
+
+  # ---- GPS / fixed position ---------------------------------------------------
+  gps_lat_col <- .find_col_any(raw, c("gps_lat", "latitude", "lat", "Lat", "GPS_Lat"))
+  gps_lon_col <- .find_col_any(raw, c("gps_lon", "longitude", "lon", "Lon", "GPS_Lon"))
+
+  if (!is.null(gps_lat_col) && !is.null(gps_lon_col)) {
+    raw$lat_src <- suppressWarnings(as.numeric(raw[[gps_lat_col]]))
+    raw$lon_src <- suppressWarnings(as.numeric(raw[[gps_lon_col]]))
+  } else {
+    if (is.null(lat) || is.null(lon)) {
+      cli::cli_abort(c(
+        "No GPS columns found in file and no fixed position supplied.",
+        "i" = "For moored deployments supply {.arg lat} and {.arg lon}.",
+        "i" = "Columns found: {.val {names(raw)}}"
+      ))
+    }
+    raw$lat_src <- lat
+    raw$lon_src <- lon
+    if (verbose) cli::cli_inform("  Fixed position: lat = {lat}, lon = {lon}")
+  }
+
+  # ---- Optional sensor columns -----------------------------------------------
+  temp_col <- .find_col_any(raw, c("temperature", "temp", "Temp", "Temperature"))
+  pres_col <- .find_col_any(raw, c("pressure", "Pressure", "pres_dbar", "Press", "depth"))
+
+  # ---- Date ------------------------------------------------------------------
+  date_col <- .find_col_any(raw, c("datetime", "time", "Time", "Date", "timestamp",
+                                    "Month Day Year Hour Minute Second"))
+  raw$date_str <- if (!is.null(date_col)) substr(raw[[date_col]], 1, 10) else NA_character_
+
+  # ---- Spatial binning -------------------------------------------------------
+  raw$lat_bin   <- round(raw$lat_src, spatial_res)
+  raw$lon_bin   <- round(raw$lon_src, spatial_res)
+  raw$spd_clean <- primary_speed
+  raw$tau       <- rho * Cd * primary_speed^2
+  if (!is.null(temp_col)) raw$temperature_src <- suppressWarnings(as.numeric(raw[[temp_col]]))
+  if (!is.null(pres_col)) raw$pressure_src    <- suppressWarnings(as.numeric(raw[[pres_col]]))
+
+  agg <- raw |>
+    dplyr::group_by(lat_bin, lon_bin) |>
+    dplyr::summarise(
+      lat                  = mean(lat_src,        na.rm = TRUE),
+      lon                  = mean(lon_src,        na.rm = TRUE),
+      current_speed        = mean(spd_clean,      na.rm = TRUE),
+      bed_shear_stress     = mean(tau,            na.rm = TRUE),
+      shear_stress_quality = shear_quality,
+      n_ensembles          = dplyr::n(),
+      date                 = stats::na.omit(date_str)[1],
+      .groups = "drop"
+    )
+
+  if (!is.null(temp_col)) {
+    temp_agg <- raw |>
+      dplyr::group_by(lat_bin, lon_bin) |>
+      dplyr::summarise(temperature = mean(temperature_src, na.rm = TRUE), .groups = "drop")
+    agg <- dplyr::left_join(agg, temp_agg, by = c("lat_bin", "lon_bin"))
+  }
+
+  if (!is.null(pres_col)) {
+    pres_agg <- raw |>
+      dplyr::group_by(lat_bin, lon_bin) |>
+      dplyr::summarise(pressure_dbar = mean(pressure_src, na.rm = TRUE), .groups = "drop")
+    agg <- dplyr::left_join(agg, pres_agg, by = c("lat_bin", "lon_bin"))
+  }
+
+  result <- agg[agg$n_ensembles >= min_obs, ]
+  result <- result[, setdiff(names(result), c("lat_bin", "lon_bin"))]
+
+  if (verbose) {
+    cli::cli_inform(c(
+      "v" = "Aquadopp output: {nrow(result)} grid cell{?s} (>= {min_obs} ensembles each)."
+    ))
+  }
+  result
+}
+
+
+# =============================================================================
+# read_rdi_adcp()
+# Teledyne RDI WorkHorse / Sentinel V -- binary PD0 format via oce
+# =============================================================================
+
+#' Read a Teledyne RDI ADCP binary file (PD0 format)
+#'
+#' @description
+#' Reads the binary **PD0** output file produced by Teledyne RDI instruments
+#' (WorkHorse II, Sentinel V, StreamPro, Ocean Surveyor, Long Ranger) via the
+#' the `oce` package's `read.adp.rdi()` parser. The function
+#' extracts east/north velocity profiles, applies sidelobe contamination
+#' detection, and derives current speed and bed shear stress -- producing
+#' output in the same format as [read_nortek_adcp()].
+#'
+#' **Optional dependency:** reading RDI binary (PD0) files requires the `oce`
+#' package (`install.packages("oce")`). If `oce` is absent the function will
+#' stop with an informative message. ASCII WinRiver II exports (`.txt`/`.csv`)
+#' do not require `oce`.
+#'
+#' **GPS:** vessel-mounted deployments embed GPS in the binary file and are
+#' handled automatically. For moored deployments supply `lat` and `lon`.
+#'
+#' @param file Character. Path to the RDI binary `.000` / `.PD0` / `.pd0`
+#'   file, or to an ASCII WinRiver II export (`.txt` or `.csv`) with columns
+#'   `VelEast_binN` and `VelNorth_binN`.
+#' @param lat Numeric. Fixed latitude for moored deployments (decimal degrees).
+#' @param lon Numeric. Fixed longitude for moored deployments (decimal degrees).
+#' @param spatial_res Integer. Decimal places for lat/lon binning (default `4`).
+#' @param min_obs Integer. Minimum ensembles per grid cell (default `5`).
+#' @param max_plausible_speed Numeric. Upper speed threshold in m/s for
+#'   sidelobe / spike removal (default `2.0`).
+#' @param sidelobe_threshold Numeric. Fraction of ensembles exceeding
+#'   `max_plausible_speed` above which a bin is considered sidelobe-contaminated
+#'   (default `0.10`).
+#' @param rho Numeric. Water density in kg/m^3 (default `1025`).
+#' @param Cd Numeric. Drag coefficient for bed shear stress (default `0.002`).
+#' @param verbose Logical. Print progress messages (default `TRUE`).
+#'
+#' @return A dataframe with columns `lat`, `lon`, `current_speed`,
+#'   `bed_shear_stress`, `shear_stress_quality`, and `n_ensembles` -- ready
+#'   for [merge_sensor_data()].
+#'
+#' @seealso [read_nortek_adcp()], [read_nortek_aquadopp()], [merge_sensor_data()]
+#' @export
+#' @examples
+#' \dontrun{
+#' # Vessel-mounted WorkHorse II (GPS embedded in binary)
+#' adcp <- read_rdi_adcp("survey_2024.000")
+#'
+#' # Moored Sentinel V (fixed position)
+#' adcp <- read_rdi_adcp("mooring_2024.000", lat = 52.41, lon = -9.20)
+#'
+#' survey <- merge_sensor_data(adcp = adcp, bathy = bathy)
+#' }
+read_rdi_adcp <- function(file,
+                           lat                 = NULL,
+                           lon                 = NULL,
+                           spatial_res         = 4L,
+                           min_obs             = 5L,
+                           max_plausible_speed = 2.0,
+                           sidelobe_threshold  = 0.10,
+                           rho                 = 1025,
+                           Cd                  = 0.002,
+                           verbose             = TRUE) {
+
+  if (!file.exists(file)) cli::cli_abort("File not found: {.file {file}}")
+
+  # ---- Try binary PD0 via oce ------------------------------------------------
+  use_oce <- grepl("\\.(000|pd0|PD0|rdi|RDI)$", file, perl = TRUE) ||
+             !grepl("\\.(csv|txt|CSV|TXT)$", file, perl = TRUE)
+
+  if (use_oce) {
+    if (!requireNamespace("oce", quietly = TRUE)) {
+      cli::cli_abort(c(
+        "The {.pkg oce} package is required to read RDI binary files.",
+        "i" = "Install it with: {.code install.packages('oce')}",
+        "i" = "Alternatively, export your data to ASCII from WinRiver II and",
+        "i" = "supply a .csv or .txt file with {.val VelEast_binN} columns."
+      ))
+    }
+
+    if (verbose) cli::cli_inform("Reading RDI binary via {.pkg oce}: {.file {file}}...")
+
+    adp <- oce::read.adp.rdi(file)
+
+    # Extract ENU velocity array: [ensemble, bin, beam] where beams 1=E, 2=N
+    v <- adp[["v"]]  # dimensions: [time, distance, beam]
+    if (is.null(v) || length(dim(v)) < 3) {
+      cli::cli_abort(c(
+        "Could not extract velocity array from RDI file.",
+        "i" = "oce returned an object without a valid {.val v} slot.",
+        "i" = "Try exporting to ASCII from WinRiver II and use a .csv file."
+      ))
+    }
+
+    n_ens  <- dim(v)[1]
+    n_bins <- dim(v)[2]
+    if (verbose) cli::cli_inform("  {n_ens} ensembles, {n_bins} depth bin{?s}.")
+
+    # Columns: beam 1 = East, beam 2 = North
+    speed_matrix <- matrix(NA_real_, nrow = n_ens, ncol = n_bins)
+    for (i in seq_len(n_bins)) {
+      e <- v[, i, 1]; n <- v[, i, 2]
+      speed_matrix[, i] <- sqrt(e^2 + n^2)
+    }
+
+    # GPS from oce object
+    gps_lat_vec <- tryCatch(adp[["latitude"]],  error = function(e) NULL)
+    gps_lon_vec <- tryCatch(adp[["longitude"]], error = function(e) NULL)
+    time_vec    <- tryCatch(adp[["time"]],       error = function(e) NULL)
+
+    raw_lat <- if (!is.null(gps_lat_vec) && length(gps_lat_vec) == n_ens) {
+      gps_lat_vec
+    } else if (!is.null(lat)) {
+      rep(lat, n_ens)
+    } else {
+      cli::cli_abort(c(
+        "No GPS data in binary file and no fixed position supplied.",
+        "i" = "Supply {.arg lat} and {.arg lon} for moored deployments."
+      ))
+    }
+
+    raw_lon <- if (!is.null(gps_lon_vec) && length(gps_lon_vec) == n_ens) {
+      gps_lon_vec
+    } else {
+      rep(lon, n_ens)
+    }
+
+    date_str <- if (!is.null(time_vec)) {
+      format(as.POSIXct(time_vec, origin = "1970-01-01", tz = "UTC"), "%Y-%m-%d")
+    } else {
+      rep(NA_character_, n_ens)
+    }
+
+  } else {
+    # ---- ASCII WinRiver II fallback --------------------------------------------
+    if (verbose) cli::cli_inform("Reading RDI ASCII export: {.file {file}}...")
+    raw_csv <- utils::read.csv(file, stringsAsFactors = FALSE)
+    n_ens   <- nrow(raw_csv)
+
+    east_cols  <- sort(grep("^VelEast_|^East_bin",  names(raw_csv), value = TRUE, ignore.case = TRUE))
+    north_cols <- sort(grep("^VelNorth_|^North_bin", names(raw_csv), value = TRUE, ignore.case = TRUE))
+
+    if (length(east_cols) == 0) {
+      cli::cli_abort(c(
+        "No velocity bin columns found in ASCII file.",
+        "i" = "Expected columns like {.val VelEast_bin1}, {.val VelNorth_bin1}.",
+        "i" = "Columns found: {.val {names(raw_csv)}}"
+      ))
+    }
+
+    n_bins       <- min(length(east_cols), length(north_cols))
+    speed_matrix <- matrix(NA_real_, nrow = n_ens, ncol = n_bins)
+    for (i in seq_len(n_bins)) {
+      e <- suppressWarnings(as.numeric(raw_csv[[east_cols[i]]]))
+      n <- suppressWarnings(as.numeric(raw_csv[[north_cols[i]]]))
+      speed_matrix[, i] <- sqrt(e^2 + n^2)
+    }
+
+    lat_col <- .find_col_any(raw_csv, c("gps_lat", "latitude", "lat"))
+    lon_col <- .find_col_any(raw_csv, c("gps_lon", "longitude", "lon"))
+    raw_lat <- if (!is.null(lat_col)) suppressWarnings(as.numeric(raw_csv[[lat_col]])) else rep(lat, n_ens)
+    raw_lon <- if (!is.null(lon_col)) suppressWarnings(as.numeric(raw_csv[[lon_col]])) else rep(lon, n_ens)
+
+    date_col <- .find_col_any(raw_csv, c("datetime", "time", "timestamp"))
+    date_str <- if (!is.null(date_col)) substr(raw_csv[[date_col]], 1, 10) else rep(NA_character_, n_ens)
+    if (verbose) cli::cli_inform("  {n_ens} ensembles, {n_bins} depth bin{?s}.")
+  }
+
+  # ---- Shared processing (identical to read_nortek_adcp) ---------------------
+  speed_matrix[speed_matrix > max_plausible_speed] <- NA_real_
+
+  contaminated   <- .detect_sidelobe_bins(speed_matrix, max_plausible_speed, sidelobe_threshold)
+  clean_bins     <- which(!contaminated)
+  if (length(clean_bins) == 0) clean_bins <- seq_len(ncol(speed_matrix))
+  deepest_clean  <- max(clean_bins)
+  n_bins_total   <- ncol(speed_matrix)
+  shear_quality  <- ifelse(deepest_clean == 1, "low",
+                    ifelse(deepest_clean <= ceiling(n_bins_total / 2), "moderate", "good"))
+  primary_speed  <- speed_matrix[, deepest_clean]
+  tau            <- rho * Cd * primary_speed^2
+
+  df <- data.frame(
+    lat_src   = raw_lat,
+    lon_src   = raw_lon,
+    spd_clean = primary_speed,
+    tau       = tau,
+    date_str  = date_str,
+    stringsAsFactors = FALSE
+  )
+
+  df$lat_bin <- round(df$lat_src, spatial_res)
+  df$lon_bin <- round(df$lon_src, spatial_res)
+
+  result <- df |>
+    dplyr::group_by(lat_bin, lon_bin) |>
+    dplyr::summarise(
+      lat                  = mean(lat_src,   na.rm = TRUE),
+      lon                  = mean(lon_src,   na.rm = TRUE),
+      current_speed        = mean(spd_clean, na.rm = TRUE),
+      bed_shear_stress     = mean(tau,       na.rm = TRUE),
+      shear_stress_quality = shear_quality,
+      n_ensembles          = dplyr::n(),
+      date                 = stats::na.omit(date_str)[1],
+      .groups = "drop"
+    )
+
+  result <- result[result$n_ensembles >= min_obs, ]
+  result <- result[, setdiff(names(result), c("lat_bin", "lon_bin"))]
+
+  if (verbose) {
+    cli::cli_inform(c(
+      "v" = "RDI output: {nrow(result)} grid cell{?s} (>= {min_obs} ensembles each)."
+    ))
+  }
+  result
+}
+
+
+# =============================================================================
+# read_aanderaa_csv()
+# Aanderaa RCM series -- Aanderaa Data Studio CSV export
+# =============================================================================
+
+#' Read an Aanderaa RCM current meter CSV export
+#'
+#' @description
+#' Reads the CSV file exported by **Aanderaa Data Studio** from an Aanderaa
+#' Recording Current Meter (RCM Blue 5450, SeaGuard RCM, or compatible model).
+#' The export typically contains time, current speed, current direction, and
+#' optionally temperature, pressure/depth, salinity, and dissolved oxygen.
+#'
+#' Because Aanderaa instruments are moored at a fixed location, latitude and
+#' longitude must be supplied by the user via `lat` and `lon`.
+#'
+#' Current speed is returned as `current_speed` (m/s). If the export uses
+#' cm/s (common in older instrument firmware), set `speed_unit = "cm/s"` or
+#' leave as `"auto"` and the function will detect units from the column header
+#' or by range-checking the data.
+#'
+#' @param file Character. Path to the Aanderaa Data Studio CSV export.
+#' @param lat Numeric. Site latitude in decimal degrees (required).
+#' @param lon Numeric. Site longitude in decimal degrees (required).
+#' @param speed_unit Character. Units of the current speed column.
+#'   `"auto"` (default) detects from the column header (looks for `cm/s`) or
+#'   infers from data range; `"m/s"` and `"cm/s"` override auto-detection.
+#' @param depth_from_pressure Logical. If `TRUE` and a pressure column is
+#'   present, approximate depth is derived as `pressure_dbar / 1.025` (default
+#'   `FALSE`; use only when a depth column is absent).
+#' @param verbose Logical. Print progress messages (default `TRUE`).
+#'
+#' @return A one-row dataframe (site-averaged) with columns `lat`, `lon`,
+#'   `current_speed`, and any additional variables present in the file
+#'   (`temperature`, `salinity`, `dissolved_oxygen`, `pressure_dbar`, `depth`)
+#'   -- ready for [merge_sensor_data()].
+#'
+#' @seealso [read_rdi_adcp()], [read_nortek_aquadopp()], [merge_sensor_data()]
+#' @export
+#' @examples
+#' \dontrun{
+#' # Moored RCM Blue at Strangford Lough narrows
+#' rcm <- read_aanderaa_csv(
+#'   "strangford_rcm_2024.csv",
+#'   lat = 54.398,
+#'   lon = -5.558
+#' )
+#' survey <- merge_sensor_data(adcp = rcm, bathy = bathy)
+#' }
+read_aanderaa_csv <- function(file,
+                               lat                  = NULL,
+                               lon                  = NULL,
+                               speed_unit           = c("auto", "m/s", "cm/s"),
+                               depth_from_pressure  = FALSE,
+                               verbose              = TRUE) {
+
+  if (!file.exists(file)) cli::cli_abort("File not found: {.file {file}}")
+  if (is.null(lat) || is.null(lon)) {
+    cli::cli_abort(c(
+      "{.arg lat} and {.arg lon} are required for Aanderaa moored deployments.",
+      "i" = "Aanderaa instruments do not log GPS; supply the deployment coordinates."
+    ))
+  }
+  speed_unit <- match.arg(speed_unit)
+
+  if (verbose) cli::cli_inform("Reading Aanderaa RCM data from {.file {file}}...")
+
+  raw <- utils::read.csv(file, stringsAsFactors = FALSE, check.names = FALSE)
+  if (verbose) cli::cli_inform("  {nrow(raw)} records loaded.")
+
+  col_names_lower <- tolower(names(raw))
+
+  # ---- Current speed ----------------------------------------------------------
+  spd_col <- .find_col_any(raw, c(
+    "Current Speed", "CurrentSpeed", "current_speed", "Speed", "speed",
+    "Horisontal Speed", "HorisontalSpeed"  # Aanderaa Data Studio spelling
+  ))
+  if (is.null(spd_col)) {
+    cli::cli_abort(c(
+      "Could not find a current speed column.",
+      "i" = "Columns found: {.val {names(raw)}}"
+    ))
+  }
+  spd_raw <- suppressWarnings(as.numeric(raw[[spd_col]]))
+
+  # Auto-detect cm/s: Aanderaa Data Studio can label as "Current Speed (cm/s)"
+  if (speed_unit == "auto") {
+    header_has_cms <- grepl("cm/s", names(raw)[spd_col], ignore.case = TRUE) ||
+                      grepl("cm.s", names(raw)[spd_col], ignore.case = TRUE)
+    range_suggests_cms <- stats::median(spd_raw, na.rm = TRUE) > 5  # >5 m/s implausible
+    speed_unit <- if (header_has_cms || range_suggests_cms) "cm/s" else "m/s"
+    if (verbose) cli::cli_inform("  Speed unit detected: {.val {speed_unit}}")
+  }
+  spd_ms <- if (speed_unit == "cm/s") spd_raw / 100 else spd_raw
+  spd_ms[spd_ms < 0 | spd_ms > 5] <- NA_real_  # clip implausible
+
+  # ---- Optional columns -------------------------------------------------------
+  temp_col <- .find_col_any(raw, c("Temperature", "Temp", "temperature", "temp"))
+  sal_col  <- .find_col_any(raw, c("Salinity", "salinity", "Sal", "sal",
+                                    "Conductivity", "conductivity"))
+  do_col   <- .find_col_any(raw, c("Dissolved Oxygen", "DO", "dissolved_oxygen",
+                                    "DissolvedOxygen", "oxygen", "O2"))
+  dep_col  <- .find_col_any(raw, c("depth", "Depth", "depth_m"))
+  pre_col  <- .find_col_any(raw, c("Pressure", "pressure", "press", "Press",
+                                    "pressure_dbar", "Pressure (dbar)"))
+
+  out <- data.frame(
+    lat           = lat,
+    lon           = lon,
+    current_speed = mean(spd_ms, na.rm = TRUE),
+    n_records     = sum(!is.na(spd_ms)),
+    stringsAsFactors = FALSE
+  )
+
+  if (!is.null(temp_col))
+    out$temperature     <- mean(suppressWarnings(as.numeric(raw[[temp_col]])), na.rm = TRUE)
+  if (!is.null(sal_col))
+    out$salinity        <- mean(suppressWarnings(as.numeric(raw[[sal_col]])),  na.rm = TRUE)
+  if (!is.null(do_col))
+    out$dissolved_oxygen <- mean(suppressWarnings(as.numeric(raw[[do_col]])),  na.rm = TRUE)
+  if (!is.null(pre_col)) {
+    pres_vals <- mean(suppressWarnings(as.numeric(raw[[pre_col]])), na.rm = TRUE)
+    out$pressure_dbar   <- pres_vals
+    if (depth_from_pressure && is.null(dep_col))
+      out$depth <- pres_vals / 1.025
+  }
+  if (!is.null(dep_col))
+    out$depth           <- mean(suppressWarnings(as.numeric(raw[[dep_col]])),  na.rm = TRUE)
+
+  if (verbose) {
+    vars_out <- setdiff(names(out), c("lat", "lon", "n_records"))
+    cli::cli_inform(c(
+      "v" = "Aanderaa output: 1 site-averaged record.",
+      "i" = "Variables: {.val {vars_out}}",
+      "i" = "Based on {out$n_records} valid speed readings."
+    ))
+  }
+  out
 }

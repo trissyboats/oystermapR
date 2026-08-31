@@ -30,7 +30,7 @@ already computed by \code{\link[=predict_oyster]{predict_oyster()}}.}
 (default 50). More = more stable importance estimates; >= 100 recommended
 for publication.}
 
-\item{match_radius_deg}{Numeric. Matching radius (default 0.002°).}
+\item{match_radius_deg}{Numeric. Matching radius (default 0.002degrees).}
 
 \item{seed}{Integer. Random seed (default 42).}
 
@@ -62,27 +62,25 @@ information in variable X?"
 \section{Interpretation}{
 
 \itemize{
-\item importance > 0.10 (> 10\% AUC drop): high importance — variable is load-
+\item importance > 0.10 (> 10\% AUC drop): high importance -- variable is load-
 bearing for model discrimination.
-\item importance 0.02–0.10: moderate importance.
-\item importance < 0.02: low importance — consider whether this variable adds
+\item importance 0.02--0.10: moderate importance.
+\item importance < 0.02: low importance -- consider whether this variable adds
 value relative to its data collection cost.
 }
 }
 
 \examples{
-\dontrun{
-records <- read.csv("nbn_ostrea_edulis.csv")
-result  <- predict_oyster(survey, "ostrea_edulis")
-
-imp <- permutation_importance(result, records, n_permutations = 100)
+sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
+set.seed(42)
+records <- data.frame(
+  lat      = result$lat[1:60],
+  lon      = result$lon[1:60],
+  presence = as.integer(runif(60) > 0.4)
+)
+imp <- permutation_importance(result, records, n_permutations = 10)
 print(imp)
-# Variable        Importance  Rank
-# temperature     0.183       1
-# salinity        0.091       2
-# depth           0.045       3
-# ...
-}
 }
 \references{
 Breiman (2001) Machine Learning 45:5-32.

@@ -63,12 +63,12 @@ export_qml_style("oyster_suitability.tif")
 
 The package is designed around data collectable with:
 \itemize{
-\item \strong{Nortek Signature 500 ADCP} — current velocity, shear stress, turbidity
+\item \strong{Nortek Signature 500 ADCP} -- current velocity, shear stress, turbidity
 proxy (read with \code{\link[=read_nortek_adcp]{read_nortek_adcp()}})
-\item \strong{Ping 3DSS iDX450 PRO Bathymetric Sonar} — depth, slope, roughness
+\item \strong{Ping 3DSS iDX450 PRO Bathymetric Sonar} -- depth, slope, roughness
 (read with \code{\link[=read_sonar_tif]{read_sonar_tif()}})
-\item \strong{Lowrance + BioBase} — depth, bottom hardness, vegetation, sidescan
-\item \strong{Salinity/temperature probes} — temperature, salinity, dissolved oxygen
+\item \strong{Lowrance + BioBase} -- depth, bottom hardness, vegetation, sidescan
+\item \strong{Salinity/temperature probes} -- temperature, salinity, dissolved oxygen
 }
 }
 
@@ -79,10 +79,10 @@ Validation functions for research-grade use:
 \item \code{\link[=validate_against_records]{validate_against_records()}}: AUC, TSS, Brier score, F1, sensitivity,
 specificity vs known presence/absence records.
 \item \code{\link[=spatial_block_cv]{spatial_block_cv()}}: Spatial block cross-validation (Roberts et al. 2017)
-— avoids inflated AUC from spatially autocorrelated data.
+-- avoids inflated AUC from spatially autocorrelated data.
 \item \code{\link[=permutation_importance]{permutation_importance()}}: Variable importance by AUC drop after
 permuting each scored variable.
-\item \code{\link[=sensitivity_analysis]{sensitivity_analysis()}}: Partial dependence curve — suitability vs a
+\item \code{\link[=sensitivity_analysis]{sensitivity_analysis()}}: Partial dependence curve -- suitability vs a
 single variable while others are held at their median.
 }
 }
@@ -92,7 +92,7 @@ single variable while others are held at their median.
 Tolerance parameters (optimal ranges) can be updated from field observations:
 \itemize{
 \item \code{\link[=update_species_tolerances]{update_species_tolerances()}}: MAP + Laplace approximation (fast) or
-RWMH MCMC (full posterior). Sequential — posterior becomes next prior.
+RWMH MCMC (full posterior). Sequential -- posterior becomes next prior.
 \item \code{\link[=get_tolerance_posteriors]{get_tolerance_posteriors()}}: Retrieve updated parameters with 95\% CIs.
 \item \code{\link[=save_tolerance_update]{save_tolerance_update()}} / \code{\link[=load_tolerance_update]{load_tolerance_update()}}: Persist across sessions.
 \item \code{\link[=reset_tolerance_update]{reset_tolerance_update()}}: Revert to built-in prior parameters.
@@ -149,8 +149,16 @@ Hasselmann K. et al. (1973) Measurements of wind-wave growth and swell
 decay during the Joint North Sea Wave Project (JONSWAP). Dtsch
 Hydrogr Z Suppl A8.
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/trissyboats/oystermapR}
+  \item Report bugs at \url{https://github.com/trissyboats/oystermapR/issues}
+}
+
+}
 \author{
-\strong{Maintainer}: T Tucker \email{tristantucker48@gmail.com}
+\strong{Maintainer}: T Tucker \email{tristantucker48@gmail.com} (\href{https://orcid.org/0009-0008-5190-6423}{ORCID})
 
 }
 \keyword{internal}

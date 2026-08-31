@@ -36,31 +36,25 @@ chronologically.
 
 The function returns a list with three elements:
 \itemize{
-\item \code{summary} — one row per survey with mean suitability, class breakdown,
+\item \code{summary} -- one row per survey with mean suitability, class breakdown,
 and data completeness stats.
-\item \code{spatial} — all surveys joined on shared lat/lon cells, with suitability
+\item \code{spatial} -- all surveys joined on shared lat/lon cells, with suitability
 columns per survey and \code{trend_slope} (linear regression of suitability
 over survey index for each cell).
-\item \code{change} — pairwise change table (only if surveys are in order; each
+\item \code{change} -- pairwise change table (only if surveys are in order; each
 consecutive pair shows mean score difference and fraction of cells
 that improved, degraded, or were stable).
 }
 }
 \examples{
-\dontrun{
-r2022 <- predict_oyster(survey_2022, "ostrea_edulis")
-r2023 <- predict_oyster(survey_2023, "ostrea_edulis")
-r2024 <- predict_oyster(survey_2024, "ostrea_edulis")
+sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+r2022 <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
+r2023 <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
 
 comp <- compare_surveys(
-  surveys = list("2022" = r2022, "2023" = r2023, "2024" = r2024)
+  surveys = list("2022" = r2022, "2023" = r2023)
 )
 
-comp$summary        # mean scores by year
-comp$change         # year-on-year change
-
-# Pass to generate_report() for a full comparative HTML report
-generate_report(r2024, "monitoring_report.html",
-                title = "Kames Bay 3-Year Monitoring")
-}
+comp$summary   # mean scores by survey
+comp$change    # change between surveys
 }

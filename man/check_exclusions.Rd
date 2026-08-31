@@ -17,8 +17,8 @@ which no column is present is silently skipped with a warning.}
 \value{
 The input dataframe with two additional columns:
 \itemize{
-\item \code{excluded}: logical — \code{TRUE} if the location fails any exclusion criterion.
-\item \code{exclusion_reason}: character — semicolon-separated list of failed criteria,
+\item \code{excluded}: logical -- \code{TRUE} if the location fails any exclusion criterion.
+\item \code{exclusion_reason}: character -- semicolon-separated list of failed criteria,
 or \code{NA} if not excluded.
 }
 }

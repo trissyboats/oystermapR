@@ -349,7 +349,7 @@
 #' **Formula:** `depth_CD = depth_surveyed + tidal_height_m`
 #'
 #' **Finding your tidal height:**
-#' - UK: UKHO EasyTide (easytide.ukho.gov.uk) — free 7-day predictions for
+#' - UK: UKHO EasyTide (easytide.ukho.gov.uk) -- free 7-day predictions for
 #'   any standard port. Download the predicted heights for your survey period.
 #' - Ireland: Marine Institute tide gauges (data.marine.ie)
 #' - France/EU: SHOM (shom.fr) or Copernicus Marine (marine.copernicus.eu)
@@ -370,7 +370,7 @@
 #' @param depth_col Character. Name of the depth column to correct
 #'   (default `"depth"`).
 #' @param datetime_col Character or `NULL`. Name of a datetime column in `df`.
-#'   If supplied, it is used only for informational messages — tidal heights
+#'   If supplied, it is used only for informational messages -- tidal heights
 #'   must still be supplied by the user. Default `NULL`.
 #' @param keep_raw Logical. If `TRUE`, retains the original depth values in a
 #'   column named `depth_raw_m` alongside the corrected `depth` column
@@ -382,18 +382,18 @@
 #'
 #' @export
 #' @examples
-#' \dontrun{
-#' # Survey conducted around high water at Oban — tidal height ~3.1 m above CD
-#' survey_corrected <- correct_to_chart_datum(survey, tidal_height_m = 3.1)
-#'
-#' # Per-row heights from a tide gauge CSV matched to survey timestamps
-#' tide_series <- read.csv("oban_tide_gauge.csv")
-#' # (match to survey rows by timestamp — user responsibility)
-#' survey_corrected <- correct_to_chart_datum(
-#'   survey,
-#'   tidal_height_m = tide_series$height_m
+#' # Minimal survey dataframe with depths measured below the water surface
+#' df <- data.frame(
+#'   lat   = c(56.41, 56.42, 56.43),
+#'   lon   = c(-5.47, -5.47, -5.46),
+#'   depth = c(5.5, 12.0, 8.3)
 #' )
-#' }
+#' # Survey conducted near high water at Oban; tidal height ~3.1 m above CD
+#' df_corrected <- correct_to_chart_datum(df, tidal_height_m = 3.1)
+#' df_corrected[, c("depth", "depth_raw_m")]
+#'
+#' # Per-row heights (e.g. from a matched tide gauge series)
+#' df_corrected2 <- correct_to_chart_datum(df, tidal_height_m = c(3.1, 3.0, 2.9))
 correct_to_chart_datum <- function(df,
                                    tidal_height_m = NULL,
                                    depth_col      = "depth",
@@ -506,7 +506,7 @@ correct_to_chart_datum <- function(df,
 #' data (amplitude and Greenwich phase lag) for 31 UK and European ports are
 #' embedded in the package.
 #'
-#' **Accuracy:** 5-constituent predictions are typically accurate to ±0.15–0.35 m
+#' **Accuracy:** 5-constituent predictions are typically accurate to +/-0.15--0.35 m
 #' at the standard port. Accuracy degrades with distance from the port and in
 #' areas with complex tidal dynamics (e.g. the Bristol Channel, inner fjords).
 #' For safety-critical work, use official UKHO EasyTide predictions and supply
@@ -541,14 +541,20 @@ correct_to_chart_datum <- function(df,
 #' @export
 #' @examples
 #' \dontrun{
-#' # Automatic correction — finds nearest port, predicts heights, corrects depths
-#' survey_corrected <- auto_tidal_correct(survey, datetime_col = "date")
+#' # Minimal survey dataframe near Oban, Scotland
+#' df <- data.frame(
+#'   lat   = c(56.41, 56.42, 56.43),
+#'   lon   = c(-5.47, -5.47, -5.46),
+#'   depth = c(5.5, 12.0, 8.3),
+#'   date  = as.POSIXct("2024-06-15 10:30:00", tz = "UTC")
+#' )
+#' # Automatic correction: finds Oban as nearest port, predicts tidal heights
+#' df_corrected <- auto_tidal_correct(df, datetime_col = "date")
+#' df_corrected[, c("depth", "tidal_height_pred_m")]
 #'
 #' # Tighten the distance threshold (only trust ports within 40 km)
-#' survey_corrected <- auto_tidal_correct(survey, max_port_dist_km = 40)
-#'
-#' # See which port was selected and inspect predicted heights
-#' survey_corrected$tidal_height_pred_m
+#' df_corrected2 <- auto_tidal_correct(df, datetime_col = "date",
+#'                                     max_port_dist_km = 40)
 #' }
 auto_tidal_correct <- function(df,
                                datetime_col     = "date",
@@ -703,7 +709,7 @@ auto_tidal_correct <- function(df,
 #' offset from Mean Sea Level for a named port. Useful for a quick sanity check
 #' on tidal height values before applying [correct_to_chart_datum()].
 #'
-#' This is a reference table only — always use official tide table predictions
+#' This is a reference table only -- always use official tide table predictions
 #' for actual corrections.
 #'
 #' @param port Character. Port name (partial, case-insensitive match).

@@ -1,26 +1,49 @@
-                    GNU GENERAL PUBLIC LICENSE
-                       Version 3, 29 June 2007
+PROPRIETARY COMMERCIAL LICENSE
+==============================
 
-Copyright (C) 2026 T Tucker <tristantucker48@gmail.com>
+Copyright (c) 2026 Tristan Tucker. All rights reserved.
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
+This software, including all source code, file format parsers, species
+tolerance specifications, regulatory overlay registries, scoring
+algorithms, and documentation in this package (the "Software"), is the
+proprietary intellectual property of the copyright holder.
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details.
+GRANT OF LICENSE
+----------------
 
-You should have received a copy of the GNU General Public License
-along with this program. If not, see <https://www.gnu.org/licenses/>.
+A licensee with a valid commercial license key issued by the copyright
+holder is granted a non-exclusive, non-transferable, revocable license
+to install and use the Software solely for the purposes specified in
+the accompanying commercial license agreement.
 
--------------------------------------------------------------------------------
+RESTRICTIONS
+------------
 
-COMMERCIAL LICENSING
+Without the prior written consent of the copyright holder, you may NOT:
 
-If you wish to use oystermapR in a proprietary product or service that
-cannot comply with the terms of the GPL-3 licence, a separate commercial
-licence is available. Please contact tristantucker48@gmail.com to discuss
-terms.
+  - Distribute, sublicense, lease, sell, or transfer the Software or
+    any derivative work thereof.
+  - Reverse-engineer, disassemble, or decompile the Software except to
+    the extent that such activity is expressly permitted by applicable
+    law notwithstanding this restriction.
+  - Remove, alter, or obscure any copyright, trademark, or proprietary
+    notice in or on the Software.
+  - Use the Software to develop a competing habitat-suitability
+    modelling, marine spatial planning, or sonar-processing product.
+
+THIRD-PARTY RUNTIME DEPENDENCIES
+--------------------------------
+
+This package calls into third-party R packages distributed on CRAN. The
+namespace-level coupling between this package and those CRAN packages
+constitutes runtime use, not source-level derivation. The third-party
+CRAN packages remain under their own licenses (some of which are GPL)
+and are NOT redistributed as part of this package; end users install
+them separately through standard CRAN install procedures.
+
+NO WARRANTY
+-----------
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND. THE
+COPYRIGHT HOLDER SHALL NOT BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+LIABILITY ARISING FROM OR IN CONNECTION WITH THE SOFTWARE OR ITS USE.

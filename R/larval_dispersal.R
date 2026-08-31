@@ -48,18 +48,26 @@
 #
 # SPECIES PELAGIC LARVAL DURATION (PLD) LOOKUP
 # ---------------------------------------------
-# Species             | PLD range  | Larval type      | Reference
-# --------------------|------------|------------------|----------------------------
-# Ostrea edulis       |  1\u20137 days  | lecithotrophic   | Laing & Walker (2003);
-#                     |            |                  | Woolmer et al. (2009);
-#                     |            |                  | Pogoda et al. (2019)
-# Magallana gigas     | 14\u201328 days | planktotrophic   | Ruesink et al. (2005);
-#                     |            |                  | Bayne (2017)
-# Crassostrea angulata| 14\u201321 days | planktotrophic   | Flores-Vergara et al. (2004)
-# Ostrea stentina     |  2\u20137 days  | lecithotrophic   | Sendra (2022);
-#                     |            |                  | Gonz\u00e1lez-Wang\u00fcemert et al. (2019)
-# Ostrea lurida       |  3\u201310 days | lecithotrophic   | Trimble et al. (2009);
-#                     |            |                  | Kimbro et al. (2019)
+# Species                   | PLD range  | Larval type      | Reference
+# --------------------------|------------|------------------|----------------------------
+# Ostrea edulis             |  1\u20137 days  | lecithotrophic   | Laing & Walker (2003);
+#                           |            |                  | Woolmer et al. (2009)
+# Magallana gigas           | 14\u201328 days | planktotrophic   | Ruesink et al. (2005);
+#                           |            |                  | Bayne (2017)
+# Crassostrea angulata      | 14\u201321 days | planktotrophic   | Flores-Vergara et al. (2004)
+# Ostrea stentina           |  2\u20137 days  | lecithotrophic   | Sendra (2022)
+# Ostrea lurida             |  3\u201310 days | lecithotrophic   | Trimble et al. (2009);
+#                           |            |                  | Kimbro et al. (2019)
+# Crassostrea virginica     | 14\u201328 days | planktotrophic   | Kennedy et al. (1996)
+# Saccostrea glomerata      | 10\u201314 days | planktotrophic   | Nell (2002)
+# Magallana sikamea         | 14\u201321 days | planktotrophic   | Langdon & Robinson (1996)
+# Magallana ariakensis      | 14\u201321 days | planktotrophic   | Calvo et al. (2001);
+#                           |            |                  | Zhang et al. (2012)
+# Crassostrea hongkongensis | 10\u201321 days | planktotrophic   | Ren et al. (2016)
+# Crassostrea nippona       | 14\u201321 days | planktotrophic   | Hamaguchi et al. (2000)
+# Crassostrea belcheri      | 10\u201314 days | planktotrophic   | FAO (2007)
+# Ostrea chilensis          |  1\u20135 days  | lecithotrophic   | Jeffs et al. (2023)
+# Ostrea denselamellosa     |  3\u20137 days  | lecithotrophic   | Park et al. (2012)
 #
 # Effective dispersal distance:
 #   dispersal_km \u2248 PLD_mean_days \u00d7 tidal_excursion_km_per_day
@@ -141,6 +149,118 @@
       "currents are predominantly southward \u2014 northward recovery of reefs ",
       "from southern source populations is limited."
     )
+  ),
+
+  # ---- Additional species added in v1.3.0 ------------------------------------
+
+  crassostrea_virginica = list(
+    pld_min_days  = 14,
+    pld_max_days  = 28,
+    pld_mean_days = 21,
+    larval_type   = "planktotrophic",
+    settlement_note = paste0(
+      "Planktotrophic larvae; PLD 2-3 weeks (Kennedy et al. 1996; Shumway 1996). ",
+      "Estuarine residence and buoyancy behaviour modulate effective dispersal; ",
+      "inter-estuary connectivity typically 20-100 km."
+    )
+  ),
+
+  saccostrea_glomerata = list(
+    pld_min_days  = 10,
+    pld_max_days  = 14,
+    pld_mean_days = 12,
+    larval_type   = "planktotrophic",
+    settlement_note = paste0(
+      "Planktotrophic larvae; PLD ~10-14 days (Nell 2002). ",
+      "Warm Australian estuary temperatures accelerate larval development. ",
+      "Local within-estuary recruitment predominates."
+    )
+  ),
+
+  magallana_sikamea = list(
+    pld_min_days  = 14,
+    pld_max_days  = 21,
+    pld_mean_days = 17,
+    larval_type   = "planktotrophic",
+    settlement_note = paste0(
+      "Planktotrophic larvae; PLD comparable to M. gigas (Langdon & Robinson 1996). ",
+      "Native to Ariake Sea, Japan; limited dispersal data available. ",
+      "Assumed similar connectivity range to Pacific oyster."
+    )
+  ),
+
+  magallana_ariakensis = list(
+    pld_min_days  = 14,
+    pld_max_days  = 21,
+    pld_mean_days = 18,
+    larval_type   = "planktotrophic",
+    settlement_note = paste0(
+      "Planktotrophic larvae; PLD ~14-21 days (Calvo et al. 2001; Zhang et al. 2012). ",
+      "Native to Chinese and Korean estuaries; moderately long dispersal range ",
+      "consistent with other Crassostrea-group species."
+    )
+  ),
+
+  crassostrea_hongkongensis = list(
+    pld_min_days  = 10,
+    pld_max_days  = 21,
+    pld_mean_days = 14,
+    larval_type   = "planktotrophic",
+    settlement_note = paste0(
+      "Planktotrophic larvae; PLD estimated at 10-21 days (Ren et al. 2016). ",
+      "Warm subtropical Pearl River estuary temperatures may shorten PLD ",
+      "relative to temperate Crassostrea. Extreme euryhalinity may promote ",
+      "estuarine retention."
+    )
+  ),
+
+  crassostrea_nippona = list(
+    pld_min_days  = 14,
+    pld_max_days  = 21,
+    pld_mean_days = 17,
+    larval_type   = "planktotrophic",
+    settlement_note = paste0(
+      "Planktotrophic larvae; PLD ~14-21 days (Hamaguchi et al. 2000). ",
+      "Rocky-reef habitat may concentrate settlement near source reefs; ",
+      "moderate regional connectivity along the Japanese Pacific coast."
+    )
+  ),
+
+  crassostrea_belcheri = list(
+    pld_min_days  = 10,
+    pld_max_days  = 14,
+    pld_mean_days = 12,
+    larval_type   = "planktotrophic",
+    settlement_note = paste0(
+      "Planktotrophic larvae; PLD estimated ~10-14 days in warm tropical waters ",
+      "(Tiensongrusmee & Pongsri 1978; FAO 2007). High water temperatures ",
+      "accelerate larval development. Near-shore intertidal habitat limits ",
+      "dispersal range."
+    )
+  ),
+
+  ostrea_chilensis = list(
+    pld_min_days  = 1,
+    pld_max_days  = 5,
+    pld_mean_days = 3,
+    larval_type   = "lecithotrophic",
+    settlement_note = paste0(
+      "Lecithotrophic brooder; releases advanced veligers / juveniles with very ",
+      "short pelagic phase (Jeffs et al. 2023; Paul-Burke & Burke 2019). ",
+      "Strong self-recruitment; isolated beds may fail without active seeding."
+    )
+  ),
+
+  ostrea_denselamellosa = list(
+    pld_min_days  = 3,
+    pld_max_days  = 7,
+    pld_mean_days = 5,
+    larval_type   = "lecithotrophic",
+    settlement_note = paste0(
+      "Lecithotrophic larvae; PLD estimated 3-7 days, consistent with other flat ",
+      "oysters (Park et al. 2012). Local self-recruitment dominates; ",
+      "inter-estuary connectivity limited."
+    )
   )
 )
 
@@ -164,15 +284,15 @@
 #' Estimates the larval connectivity of each survey location using one or both
 #' of two approaches:
 #'
-#' **Route 1 — Built-in gap-threshold union-find (no external data needed):**
+#' **Route 1 -- Built-in gap-threshold union-find (no external data needed):**
 #' Patches above `min_suitability` that lie within the species' effective
 #' dispersal kernel distance are grouped into dispersal clusters using
 #' union-find. Within each cluster, a connectivity score is derived from the
 #' number, quality, and distance-weighted contribution of potential larval
 #' sources (Gaussian decay kernel, sigma = dispersal_km / 2).
 #'
-#' **Route 2 — External connectivity matrix (particle tracking / literature):**
-#' When `connectivity_matrix` is supplied (a dataframe of source → destination
+#' **Route 2 -- External connectivity matrix (particle tracking / literature):**
+#' When `connectivity_matrix` is supplied (a dataframe of source -> destination
 #' pairs with weights), those weights replace the Gaussian kernel for matched
 #' pairs. Rows not covered by the matrix fall back to Route 1. The matrix can
 #' come from:
@@ -187,17 +307,17 @@
 #' `tidal_excursion_km` (mean daily tidal dispersal distance):
 #'
 #' ```
-#' dispersal_km = PLD_mean_days × tidal_excursion_km
+#' dispersal_km = PLD_mean_days x tidal_excursion_km
 #' ```
 #'
 #' PLD values are literature-derived:
 #' | Species | PLD | Larval type | Default dispersal |
 #' |---|---|---|---|
-#' | *O. edulis* | 1–7 days | lecithotrophic | ~20 km |
-#' | *M. gigas* | 14–28 days | planktotrophic | ~105 km |
-#' | *C. angulata* | 14–21 days | planktotrophic | ~85 km |
-#' | *O. stentina* | 2–7 days | lecithotrophic | ~20 km |
-#' | *O. lurida* | 3–10 days | lecithotrophic | ~30 km |
+#' | *O. edulis* | 1--7 days | lecithotrophic | ~20 km |
+#' | *M. gigas* | 14--28 days | planktotrophic | ~105 km |
+#' | *C. angulata* | 14--21 days | planktotrophic | ~85 km |
+#' | *O. stentina* | 2--7 days | lecithotrophic | ~20 km |
+#' | *O. lurida* | 3--10 days | lecithotrophic | ~30 km |
 #'
 #' @param result Dataframe from [predict_oyster()] with `lat`, `lon`,
 #'   `suitability` columns.
@@ -210,8 +330,8 @@
 #'   days. Takes precedence over species lookup; ignored if `dispersal_km` is
 #'   supplied.
 #' @param tidal_excursion_km Numeric. Mean daily tidal dispersal distance in km
-#'   (default 5 km/day approx. mean current 0.06 m/s × 24 h). Increase for highly
-#'   tidal or estuarine sites (8–15 km/day). Ignored if `dispersal_km` is
+#'   (default 5 km/day approx. mean current 0.06 m/s x 24 h). Increase for highly
+#'   tidal or estuarine sites (8--15 km/day). Ignored if `dispersal_km` is
 #'   supplied.
 #' @param min_suitability Numeric. Minimum suitability score for a patch to
 #'   qualify as a potential larval source or sink (default 0.40). Unsuitable
@@ -223,7 +343,7 @@
 #'   - `dest_lat`, `dest_lon`: coordinates of the destination
 #'   - `weight`: connectivity weight \[0, 1\] (e.g. settlement probability or
 #'     proportional larval flux). Higher = stronger connection.
-#'   OpenDrift export tip: `\dontrun{write.csv(connectivity_matrix, "cm.csv")}`.
+#'   OpenDrift export tip: `\donttest{write.csv(connectivity_matrix, "cm.csv")}`.
 #' @param matrix_match_radius_deg Numeric. Spatial matching tolerance in decimal
 #'   degrees for linking matrix entries to result rows (default 0.10 approx. 10 km).
 #' @param verbose Logical. Print dispersal parameters and connectivity summary
@@ -247,41 +367,17 @@
 #'
 #' @export
 #' @references
-#' Cowen R.K. & Sponaugle S. (2009) Annual Review of Marine Science 1:443–466.
-#' Robins P.E. et al. (2017) J Applied Ecology 54:1699–1710. \doi{10.1111/1365-2664.12854}
-#' Siegel D.A. et al. (2008) PNAS 105:8974–8979.
-#' Woolmer A.P. et al. (2009) J Shellfish Research 28:107–116.
-#' Trimble A.C. et al. (2009) J Shellfish Research 28:43–53.
+#' Cowen R.K. & Sponaugle S. (2009) Annual Review of Marine Science 1:443--466.
+#' Robins P.E. et al. (2017) J Applied Ecology 54:1699--1710. \doi{10.1111/1365-2664.12854}
+#' Siegel D.A. et al. (2008) PNAS 105:8974--8979.
+#' Woolmer A.P. et al. (2009) J Shellfish Research 28:107--116.
+#' Trimble A.C. et al. (2009) J Shellfish Research 28:43--53.
 #'
 #' @examples
-#' \dontrun{
-#' result <- predict_oyster(survey, "ostrea_edulis")
-#'
-#' # Route 1 only — built-in dispersal kernel
+#' sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+#' result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
 #' result <- score_larval_connectivity(result, species = "ostrea_edulis")
-#'
-#' # Route 1 with custom dispersal distance (e.g. strong tidal excursion)
-#' result <- score_larval_connectivity(result, species = "ostrea_edulis",
-#'                                     tidal_excursion_km = 10)
-#'
-#' # Route 1 with manual dispersal override
-#' result <- score_larval_connectivity(result, dispersal_km = 8)
-#'
-#' # Route 2 — external connectivity matrix from OpenDrift
-#' cm <- read.csv("opendrift_connectivity.csv")
-#' # Required columns: source_lat, source_lon, dest_lat, dest_lon, weight
-#' result <- score_larval_connectivity(result,
-#'            species             = "ostrea_edulis",
-#'            connectivity_matrix = cm)
-#'
-#' # Inspect isolated patches — need artificial seeding
-#' isolated <- subset(result,
-#'   larval_connectivity_class == "Isolated" & suitability_class == "High")
-#'
-#' # Strong candidates: high suitability AND high connectivity
-#' targets <- subset(result,
-#'   suitability_class == "High" & larval_connectivity_class == "Highly connected")
-#' }
+#' table(result$larval_connectivity_class)
 score_larval_connectivity <- function(result,
                                        species              = NULL,
                                        dispersal_km         = NULL,
@@ -636,8 +732,9 @@ score_larval_connectivity <- function(result,
                                   !is.na(suit) & suit >= 0.6, na.rm = TRUE)
     if (n_high_suit_isolated > 0)
       cli::cli_warn(c(
-        "!" = paste0(n_high_suit_isolated,
-                     " high-suitability site{?s} {is/are} isolated from larval supply."),
+        "!" = paste0(n_high_suit_isolated, " high-suitability ",
+                     if (n_high_suit_isolated == 1L) "site is" else "sites are",
+                     " isolated from larval supply."),
         "i" = "These are candidate sites for priority artificial seeding."
       ))
     if (!is.null(connectivity_matrix)) {
@@ -665,9 +762,9 @@ score_larval_connectivity <- function(result,
 #' **OpenDrift setup:**
 #' Run OpenDrift (`OceanDrift` or `OpenOil` adapted for larvae) seeding particles
 #' at each source reef location. Export a CSV with at minimum:
-#' - `origin_lat`, `origin_lon` — seed position
-#' - `final_lat`, `final_lon` — settlement position (stranded or settled)
-#' - `status` — filter to `"stranded"` or `"active"` as appropriate
+#' - `origin_lat`, `origin_lon` -- seed position
+#' - `final_lat`, `final_lon` -- settlement position (stranded or settled)
+#' - `status` -- filter to `"stranded"` or `"active"` as appropriate
 #'
 #' The function bins particles into a grid and computes the fraction of particles
 #' from each source bin that arrive in each destination bin.
@@ -685,7 +782,7 @@ score_larval_connectivity <- function(result,
 #' @param verbose Logical. Default TRUE.
 #'
 #' @return A dataframe with columns `source_lat`, `source_lon`, `dest_lat`,
-#'   `dest_lon`, `weight` — ready for passing to
+#'   `dest_lon`, `weight` -- ready for passing to
 #'   [score_larval_connectivity()].
 #'
 #' @export

@@ -53,7 +53,7 @@ Invisibly: a named list with elements:
 \item \code{n_records}: number of matched records used
 \item \code{loglik_null}: log-likelihood of intercept-only model
 \item \code{loglik_fit}: log-likelihood at MAP/posterior mean
-\item \code{mcfadden_r2}: 1 - loglik_fit / loglik_null (pseudo-R²)
+\item \code{mcfadden_r2}: 1 - loglik_fit / loglik_null (pseudo-R^2)
 \item \code{updated_params}: named list of updated parameter values per variable
 \item \code{posterior_sd}: named list of posterior SD per parameter (from Laplace/MCMC)
 \item \code{prior_params}: the parameter values before updating (for comparison)
@@ -90,32 +90,31 @@ optimiser.
 }
 
 \examples{
-\dontrun{
 # Field records with presence/absence + environmental measurements
 records <- data.frame(
-  lat      = c(51.5, 51.6, 51.7, 51.8, 51.4),
-  lon      = c(-4.1, -4.2, -4.0, -4.3, -4.0),
-  presence = c(1, 1, 0, 0, 1),
-  temperature = c(16.2, 17.1, 12.3, 11.0, 15.8),
-  salinity    = c(32, 33, 31, 30, 34),
-  depth       = c(5, 8, 15, 20, 3)
+  lat      = c(51.5, 51.6, 51.7, 51.8, 51.4, 51.55, 51.65, 51.72,
+               51.83, 51.42, 51.50, 51.60, 51.70, 51.80, 51.40,
+               51.53, 51.63, 51.73, 51.83, 51.43),
+  lon      = c(-4.1, -4.2, -4.0, -4.3, -4.0, -4.15, -4.22, -4.01,
+               -4.32, -4.03, -4.11, -4.21, -4.01, -4.31, -4.00,
+               -4.13, -4.23, -4.02, -4.30, -4.01),
+  presence = c(1,1,0,0,1, 1,1,0,0,1, 1,0,0,1,1, 0,1,1,0,1),
+  temperature = c(16.2,17.1,12.3,11.0,15.8, 16.5,17.0,12.5,11.2,
+                  15.5, 16.0,17.3,12.0,11.5,15.9, 16.8,17.2,12.1,
+                  11.1,15.6),
+  salinity = c(32,33,31,30,34, 32,33,31,30,34, 33,33,31,31,34,
+               32,33,32,30,34),
+  depth    = c(5,8,15,20,3, 6,9,14,18,4, 5,10,16,19,3,
+               7,8,15,20,4)
 )
 
 fit <- update_species_tolerances(
-  records = records,
-  species = "ostrea_edulis",
-  update_vars = c("temperature", "salinity", "depth")
+  records     = records,
+  species     = "ostrea_edulis",
+  update_vars = c("temperature", "salinity", "depth"),
+  min_records = 20L
 )
-
-# See updated parameters
 get_tolerance_posteriors("ostrea_edulis")
-
-# Re-run predict_oyster — it will automatically use updated parameters
-result <- predict_oyster(survey, "ostrea_edulis")
-
-# Save to disk for next session
-save_tolerance_update("ostrea_edulis")
-}
 }
 \seealso{
 \code{\link[=get_tolerance_posteriors]{get_tolerance_posteriors()}}, \code{\link[=reset_tolerance_update]{reset_tolerance_update()}},

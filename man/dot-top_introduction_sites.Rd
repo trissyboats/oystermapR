@@ -34,7 +34,7 @@ Dataframe of top sites, or NULL if none qualify.
 }
 \description{
 Identifies the highest-scoring, spatially spread-out locations for oyster
-introduction. Uses a greedy selection that prevents clustering — once a site
+introduction. Uses a greedy selection that prevents clustering -- once a site
 is chosen, no other site within \code{min_spacing_deg} is considered, so the
 result always represents distinct areas of the survey.
 

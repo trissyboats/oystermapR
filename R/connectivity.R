@@ -6,20 +6,20 @@
 #'
 #' @description
 #' Builds a spatial graph of cells above a suitability threshold and identifies
-#' connected components — contiguous patches of suitable habitat. Isolated
+#' connected components -- contiguous patches of suitable habitat. Isolated
 #' cells or small patches are flagged because they are at higher risk of:
 #'
-#' - **Recruitment failure** — larvae from isolated populations may be
+#' - **Recruitment failure** -- larvae from isolated populations may be
 #'   flushed away before settling back in the patch.
-#' - **Genetic bottlenecks** — small isolated populations have lower allelic
+#' - **Genetic bottlenecks** -- small isolated populations have lower allelic
 #'   diversity and reduced adaptive capacity.
-#' - **Local extinction without recolonisation** — if a patch is lost, there
+#' - **Local extinction without recolonisation** -- if a patch is lost, there
 #'   are no connected source populations to recolonise.
 #'
 #' Two cells are considered connected if they are within `gap_m` metres of
-#' each other (default 500 m — approximately the scale of larval dispersal
+#' each other (default 500 m -- approximately the scale of larval dispersal
 #' during a tidal cycle at moderate current speeds). Connectivity is computed
-#' using a fast union-find (disjoint set) algorithm — no external graph
+#' using a fast union-find (disjoint set) algorithm -- no external graph
 #' packages required.
 #'
 #' @param result Dataframe from [predict_oyster()] with `lat`, `lon`,
@@ -33,29 +33,19 @@
 #' @param verbose Logical. Print connectivity summary (default TRUE).
 #'
 #' @return Input dataframe with additional columns:
-#'   `patch_id` (integer — unique patch identifier; NA for non-suitable cells),
+#'   `patch_id` (integer -- unique patch identifier; NA for non-suitable cells),
 #'   `patch_size` (number of cells in the patch),
 #'   `patch_area_km2` (approximate area based on cell density),
 #'   `connectivity_class` (`"isolated"`, `"small"`, `"moderate"`, `"large"`),
-#'   `is_hub` (logical — TRUE for the highest-scoring cell in each patch,
+#'   `is_hub` (logical -- TRUE for the highest-scoring cell in each patch,
 #'   useful as candidate introduction points).
 #'
 #' @export
 #' @examples
-#' \dontrun{
-#' result <- predict_oyster(survey, "ostrea_edulis")
+#' sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+#' result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
 #' result <- analyse_connectivity(result, gap_m = 500)
-#'
-#' # Large well-connected patches are the best restoration targets
-#' good_patches <- subset(result,
-#'   connectivity_class == "large" & suitability_class == "High")
-#'
-#' # Count patches
 #' table(result$connectivity_class)
-#'
-#' # Visualise — patch_id maps to distinct colours in QGIS
-#' export_geotiff(result, "connectivity.tif")
-#' }
 analyse_connectivity <- function(result,
                                   min_suitability = 0.5,
                                   gap_m           = 500,
@@ -199,7 +189,9 @@ analyse_connectivity <- function(result,
     n_iso <- sum(result$connectivity_class == "isolated", na.rm = TRUE)
     if (n_iso > 0)
       cli::cli_inform(c(
-        "i" = paste0(n_iso, " isolated cell{?s} \u2014 suitable but unconnected. ",
+        "i" = paste0(n_iso, " isolated ",
+                     if (n_iso == 1L) "cell" else "cells",
+                     " \u2014 suitable but unconnected. ",
                      "Restoration value is limited without connectivity to source populations.")
       ))
   }

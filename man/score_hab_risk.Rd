@@ -16,7 +16,7 @@ score_hab_risk(
 }
 \arguments{
 \item{result}{Dataframe from \code{\link[=predict_oyster]{predict_oyster()}}. Must contain \code{lat}, \code{lon}.
-Optional: \code{din_ug_l} (dissolved inorganic nitrogen µg/L) and
+Optional: \code{din_ug_l} (dissolved inorganic nitrogen ugg/L) and
 \code{temp_surface_c} / \code{temp_bottom_c} for stratification index.}
 
 \item{hab_data}{Dataframe of historical HAB events (see Details), or NULL.}
@@ -30,7 +30,7 @@ Default: last 10 years.}
 \item{match_radius_m}{Numeric. Radius in metres for event aggregation
 (default 5000 m = 5 km, consistent with ICES monitoring station spacing).}
 
-\item{species}{Character. Target species — affects toxin severity weights
+\item{species}{Character. Target species -- affects toxin severity weights
 (\code{"ostrea_edulis"} or \code{"magallana_gigas"}).}
 
 \item{verbose}{Logical. Default TRUE.}
@@ -51,36 +51,40 @@ bloom event frequency and, where available, nutrient and stratification data.
 
 \strong{Input options (in priority order):}
 \enumerate{
-\item \code{hab_data} — manually supplied dataframe of historical HAB events
+\item \code{hab_data} -- manually supplied dataframe of historical HAB events
 (see Details).
-\item \code{fetch_live = TRUE} — queries the ICES HAB database for event records
+\item \code{fetch_live = TRUE} -- queries the ICES HAB database for event records
 within the survey extent and a specified date range. Requires internet
 access and the \code{httr} package.
-\item Neither — returns a fixed background-level risk (0.1) with a warning.
+\item Neither -- returns a fixed background-level risk (0.1) with a warning.
 }
 }
 \section{hab_data format}{
 
 A dataframe with columns:
 \itemize{
-\item \code{lat}, \code{lon} — event coordinates (decimal degrees)
-\item \code{date} — event date (Date or character "YYYY-MM-DD")
-\item \code{genus} (optional) — bloom genus (e.g. "Alexandrium", "Pseudo-nitzschia")
-\item \code{toxin} (optional) — toxin class (PSP, ASP, DSP, AZP) — affects severity weight
-\item \code{closure_days} (optional) — number of days the area was closed; default 1
+\item \code{lat}, \code{lon} -- event coordinates (decimal degrees)
+\item \code{date} -- event date (Date or character "YYYY-MM-DD")
+\item \code{genus} (optional) -- bloom genus (e.g. "Alexandrium", "Pseudo-nitzschia")
+\item \code{toxin} (optional) -- toxin class (PSP, ASP, DSP, AZP) -- affects severity weight
+\item \code{closure_days} (optional) -- number of days the area was closed; default 1
 per event if absent
 }
 }
 
 \examples{
-\dontrun{
-# Manual data
-hab <- data.frame(lat=52.1, lon=-4.5, date="2022-07-15",
-                  genus="Alexandrium", toxin="PSP", closure_days=14)
-result <- score_hab_risk(result, hab_data=hab, species="ostrea_edulis")
+sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
 
-# Live ICES fetch
-result <- score_hab_risk(result, fetch_live=TRUE,
-                         date_range=c("2015-01-01","2024-12-31"))
-}
+# Manual HAB data
+hab <- data.frame(
+  lat          = c(50.25),
+  lon          = c(-4.12),
+  date         = "2022-07-15",
+  genus        = "Alexandrium",
+  toxin        = "PSP",
+  closure_days = 14
+)
+result <- score_hab_risk(result, hab_data = hab, species = "ostrea_edulis")
+table(result$hab_risk_class)
 }

@@ -19,21 +19,21 @@ read_nortek_adcp(
 \item{file}{Character. Path to the Nortek merged CSV file.}
 
 \item{spatial_res}{Integer. Decimal places for lat/lon binning (default \code{4},
-approx.11 m cells at 56°N). Reduce to \code{3} (~111 m) for coarser surveys.}
+approx.11 m cells at 56degrees N). Reduce to \code{3} (~111 m) for coarser surveys.}
 
 \item{min_obs}{Integer. Minimum number of raw ensembles per spatial cell
 to include in output (default \code{5}). Cells with fewer observations are
 dropped as unreliable.}
 
 \item{max_plausible_speed}{Numeric. Speed in m/s above which a reading is
-considered a sidelobe spike (default \code{1.5} m/s — appropriate for sheltered
+considered a sidelobe spike (default \code{1.5} m/s -- appropriate for sheltered
 coastal/loch environments). Increase to \code{2.5} for open coast surveys.}
 
 \item{sidelobe_threshold}{Numeric. Fraction of readings in a bin that must
 exceed \code{max_plausible_speed} before the bin is flagged as contaminated
 (default \code{0.10}, i.e. 10\%).}
 
-\item{rho}{Numeric. Seawater density in kg/m³ (default \code{1025}).}
+\item{rho}{Numeric. Seawater density in kg/m^3 (default \code{1025}).}
 
 \item{Cd}{Numeric. Drag coefficient for bed shear stress calculation
 (default \code{0.002}, typical for mixed sandy/rocky coastal seabed).}
@@ -43,16 +43,16 @@ exceed \code{max_plausible_speed} before the bin is flagged as contaminated
 \value{
 A dataframe with one row per spatial cell containing:
 \itemize{
-\item \code{lat}, \code{lon} — cell centroid coordinates
-\item \code{date} — earliest observation date in cell (character, \code{"YYYY-MM-DD"})
-\item \code{current_velocity} — mean speed from deepest clean bin (m/s)
-\item \code{current_velocity_sd} — standard deviation within cell (m/s)
-\item \code{current_velocity_p95} — 95th percentile speed (m/s)
-\item \code{shear_stress} — estimated bed shear stress (N/m²)
-\item \code{shear_stress_quality} — \code{"good"}, \code{"moderate"}, or \code{"low"}
-\item \code{n_ensembles} — raw ensembles averaged into this cell
-\item \code{bins_used} — which velocity bins contributed (e.g. \code{"bin1"})
-\item \code{bins_excluded} — which bins were removed as contaminated
+\item \code{lat}, \code{lon} -- cell centroid coordinates
+\item \code{date} -- earliest observation date in cell (character, \code{"YYYY-MM-DD"})
+\item \code{current_velocity} -- mean speed from deepest clean bin (m/s)
+\item \code{current_velocity_sd} -- standard deviation within cell (m/s)
+\item \code{current_velocity_p95} -- 95th percentile speed (m/s)
+\item \code{shear_stress} -- estimated bed shear stress (N/m^2)
+\item \code{shear_stress_quality} -- \code{"good"}, \code{"moderate"}, or \code{"low"}
+\item \code{n_ensembles} -- raw ensembles averaged into this cell
+\item \code{bins_used} -- which velocity bins contributed (e.g. \code{"bin1"})
+\item \code{bins_excluded} -- which bins were removed as contaminated
 }
 }
 \description{
@@ -75,8 +75,7 @@ exist, the deepest clean bin is used and quality is \code{"moderate"} or
 \code{"good"}.
 }
 \examples{
-\dontrun{
-adcp <- read_nortek_adcp("S104456A008_AWE_Melfort_merged.csv")
-print(adcp)
-}
+adcp_f <- system.file("extdata", "example_bay_adcp.csv", package = "oystermapR")
+adcp <- read_nortek_adcp(adcp_f, verbose = FALSE)
+head(adcp[, c("lat", "lon", "current_velocity")])
 }

@@ -128,7 +128,7 @@
 #' @description
 #' Assesses whether survey locations meet the conditions required for bivalve
 #' larval settlement and metamorphosis. Settlement scoring uses a separate,
-#' tighter tolerance specification than adult habitat scoring — larvae are more
+#' tighter tolerance specification than adult habitat scoring -- larvae are more
 #' sensitive to turbidity, require minimum current flow for delivery, and need
 #' hard substrate for attachment.
 #'
@@ -146,17 +146,17 @@
 #'
 #' @export
 #' @examples
-#' \dontrun{
-#' adult_result     <- predict_oyster(survey, "ostrea_edulis")
-#' settlement_result <- score_settlement(survey, "ostrea_edulis")
-#'
-#' # Identify cells suitable for both adult survival AND natural recruitment
-#' combined <- merge(adult_result, settlement_result[, c("lat","lon",
-#'               "settlement_suitability","settlement_class")],
-#'               by = c("lat","lon"))
+#' sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+#' survey_df  <- read.csv(sample_csv)
+#' adult_result      <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
+#' settlement_result <- score_settlement(survey_df, "ostrea_edulis")
+#' # Cells suitable for both adult survival AND natural recruitment
+#' combined <- merge(adult_result,
+#'   settlement_result[, c("lat","lon","settlement_suitability","settlement_class")],
+#'   by = c("lat","lon"))
 #' combined$dual_suitable <- combined$suitability >= 0.6 &
 #'                           combined$settlement_suitability >= 0.6
-#' }
+#' sum(combined$dual_suitable)
 score_settlement <- function(survey, species = "ostrea_edulis", verbose = TRUE) {
 
   species <- tolower(species)

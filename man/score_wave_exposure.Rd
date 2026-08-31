@@ -43,7 +43,7 @@ condition for coastal aquaculture siting).}
 \value{
 \code{result} with additional columns:
 \itemize{
-\item \code{wave_hs_m}: significant wave height (m) — computed or supplied
+\item \code{wave_hs_m}: significant wave height (m) -- computed or supplied
 \item \code{wave_exposure_score} [0,1]: 0 = fully sheltered, 1 = severely exposed
 \item \code{wave_exposure_class}: "Sheltered" / "Moderate" / "Exposed" / "Severe"
 \item \code{wave_exposure_note}: gear implication flag
@@ -68,18 +68,13 @@ a warning is issued).
 }
 }
 \examples{
-\dontrun{
-# Fetch column in result
-result$fetch_km <- c(2.5, 8.0, 25.0, 45.0)
-result <- score_wave_exposure(result, fetch_col = "fetch_km")
+sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
 
 # Uniform fetch for a sheltered sea loch
 result <- score_wave_exposure(result, fetch_km = 3.5)
+table(result$wave_exposure_class)
 
-# Measured wave height column
-result <- score_wave_exposure(result, wave_height_col = "hs_m")
-
-# Depth proxy only (coarse)
-result <- score_wave_exposure(result)
-}
+# Depth proxy only (no fetch data)
+result2 <- score_wave_exposure(result)
 }

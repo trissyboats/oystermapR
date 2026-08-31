@@ -53,7 +53,7 @@ The report includes an executive summary, suitability class breakdown,
 per-variable scoring table, most common limiting factors, top introduction
 sites, and a methodology section.
 
-Output format is PDF by default (requires a LaTeX installation — see Note
+Output format is PDF by default (requires a LaTeX installation -- see Note
 below). HTML is also supported and requires no additional system software.
 }
 \note{
@@ -75,7 +75,7 @@ tinytex::install_tinytex()
 result <- predict_oyster(survey, "ostrea_edulis",
                          output_geotiff = "kames_bay.tif")
 
-# Standard HTML report (recommended — Plotly charts, no LaTeX needed)
+# Standard HTML report (recommended -- Plotly charts, no LaTeX needed)
 generate_report(result, "kames_bay_report.html",
                 title  = "Kames Bay Oyster Habitat Assessment",
                 author = "T. Tucker")

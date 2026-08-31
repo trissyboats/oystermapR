@@ -43,13 +43,11 @@ and the value is the 1-sigma absolute error (same units as the variable).
 Any variable not listed defaults to 2\% of its observed value.
 }
 \examples{
-\dontrun{
-result <- predict_oyster(survey, "ostrea_edulis")
+sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
 tol    <- get_species_tolerances("ostrea_edulis")
 result <- add_suitability_ci(result, tol,
-                             uncertainty = c(temperature = 0.3,
-                                             salinity    = 0.5))
+  uncertainty = c(temperature = 0.3, salinity = 0.5))
 # Columns suit_ci_lower, suit_ci_upper, suit_ci_width now present
-generate_report(result, "report.html")   # map rings scale with CI width
-}
+head(result[, c("lat", "lon", "suitability", "suit_ci_lower", "suit_ci_upper")])
 }

@@ -51,7 +51,7 @@
 #'
 #' @return A named list:
 #'   - `auc`: numeric \[0,1\]
-#'   - `optimal_threshold`: numeric \[0,1\] — Youden's J
+#'   - `optimal_threshold`: numeric \[0,1\] -- Youden's J
 #'   - `sensitivity`: numeric \[0,1\] at optimal threshold
 #'   - `specificity`: numeric \[0,1\] at optimal threshold
 #'   - `f1`: numeric \[0,1\] at optimal threshold
@@ -59,26 +59,23 @@
 #'   - `brier_score`: numeric \[0,1\]
 #'   - `n_presences`: integer
 #'   - `n_absences`: integer
-#'   - `n_unmatched`: integer — records dropped due to no nearby prediction
+#'   - `n_unmatched`: integer -- records dropped due to no nearby prediction
 #'   - `roc_df`: dataframe with columns `threshold`, `sensitivity`,
 #'     `specificity` (for custom plotting)
 #'
 #' @export
 #' @examples
-#' \dontrun{
-#' # Load known flat oyster records (e.g. from NBN Atlas CSV export)
-#' records <- read.csv("nbn_ostrea_edulis.csv")
-#'
-#' # Run prediction on same area
-#' result <- predict_oyster(survey, "ostrea_edulis")
-#'
-#' # Validate
-#' val <- validate_against_records(result, records,
-#'                                  presence_col = "presence")
-#' val$auc           # overall discrimination power
-#' val$tss           # skill score
-#' val$roc_df        # data for custom ggplot
-#' }
+#' sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+#' result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
+#' # Synthetic balanced presence/absence records for demonstration
+#' set.seed(42)
+#' records <- data.frame(
+#'   lat      = result$lat[1:60],
+#'   lon      = result$lon[1:60],
+#'   presence = as.integer(runif(60) > 0.4)
+#' )
+#' val <- validate_against_records(result, records, presence_col = "presence")
+#' val$auc
 validate_against_records <- function(predicted,
                                       records,
                                       presence_col    = "presence",
@@ -132,8 +129,10 @@ validate_against_records <- function(predicted,
   n_unmatched <- sum(is.na(matched_suit))
   if (n_unmatched > 0) {
     cli::cli_warn(c(
-      "!" = paste0("{n_unmatched} record{?s} had no prediction cell within ",
-                   "{match_radius_deg}\u00b0 \u2014 dropped from validation."),
+      "!" = paste0(n_unmatched, " ",
+                   if (n_unmatched == 1L) "record" else "records",
+                   " had no prediction cell within ",
+                   match_radius_deg, "\u00b0 \u2014 dropped from validation."),
       "i" = "Increase {.arg match_radius_deg} or check coordinate alignment."
     ))
   }
@@ -286,7 +285,7 @@ validate_against_records <- function(predicted,
 #' provide training data to re-score the suitability model. AUC, TSS, and
 #' Brier score are computed per fold and summarised across folds.
 #'
-#' This function is purely evaluative — it does not refit a new model. Instead,
+#' This function is purely evaluative -- it does not refit a new model. Instead,
 #' it uses the spatial heterogeneity in the existing `predicted` suitability
 #' surface to estimate out-of-block performance.
 #'
@@ -328,21 +327,18 @@ validate_against_records <- function(predicted,
 #'   doi:10.1111/ecog.02881
 #'
 #' @examples
-#' \dontrun{
-#' records <- read.csv("nbn_ostrea_edulis.csv")
-#' result  <- predict_oyster(survey, "ostrea_edulis")
-#'
-#' # Standard validation
-#' std_val <- validate_against_records(result, records)
-#' std_val$auc  # may be optimistically high
-#'
-#' # Spatial block CV
-#' sp_cv <- spatial_block_cv(result, records, n_blocks = 5)
-#' sp_cv$mean_auc  # more honest estimate of transferability
-#'
-#' # Compare -- if sp_cv$mean_auc << std_val$auc, model is spatially
-#' # autocorrelated and transfers less well than initially apparent.
-#' }
+#' sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+#' result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
+#' # Use all result rows with alternating presence/absence for a balanced dataset
+#' set.seed(42)
+#' idx <- seq_len(nrow(result))
+#' records <- data.frame(
+#'   lat      = result$lat[idx],
+#'   lon      = result$lon[idx],
+#'   presence = as.integer(runif(length(idx)) > 0.4)
+#' )
+#' sp_cv <- spatial_block_cv(result, records, n_blocks = 4)
+#' sp_cv$mean_auc
 spatial_block_cv <- function(predicted,
                               records,
                               presence_col    = "presence",
@@ -527,9 +523,9 @@ spatial_block_cv <- function(predicted,
   }
 
   fold_df   <- do.call(rbind, Filter(Negate(is.null), fold_results))
-  n_valid   <- nrow(fold_df)
+  n_valid   <- if (is.null(fold_df)) 0L else nrow(fold_df)
 
-  if (n_valid == 0)
+  if (n_valid == 0L)
     cli::cli_abort("No blocks had sufficient records for cross-validation.")
 
   auc_mean   <- mean(fold_df$auc)

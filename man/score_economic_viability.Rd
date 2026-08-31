@@ -32,36 +32,31 @@ Input dataframe with \code{viability_score} [0-1],
 \description{
 Combines ecological suitability, gear feasibility, site accessibility, and
 patch size into a composite \strong{economic viability index} [0-1]. This is a
-heuristic scoring — not a financial model — but it ranks sites consistently
+heuristic scoring -- not a financial model -- but it ranks sites consistently
 and can be used to shortlist candidates for detailed business case
 development.
 
 The index weighs four components:
 \enumerate{
-\item \strong{Ecological suitability} (40\%) — from \code{\link[=predict_oyster]{predict_oyster()}}
-\item \strong{Gear feasibility} (25\%) — best gear score from \code{\link[=assess_gear_feasibility]{assess_gear_feasibility()}}
-\item \strong{Accessible patch area} (20\%) — log-scaled area of connected suitable
+\item \strong{Ecological suitability} (40\%) -- from \code{\link[=predict_oyster]{predict_oyster()}}
+\item \strong{Gear feasibility} (25\%) -- best gear score from \code{\link[=assess_gear_feasibility]{assess_gear_feasibility()}}
+\item \strong{Accessible patch area} (20\%) -- log-scaled area of connected suitable
 habitat (from \code{\link[=analyse_connectivity]{analyse_connectivity()}} if available)
-\item \strong{Access score} (15\%) — distance to nearest harbour/port (if
+\item \strong{Access score} (15\%) -- distance to nearest harbour/port (if
 \code{harbours} table supplied) or flat 0.5 if unknown
 }
 }
 \examples{
-\dontrun{
-result <- predict_oyster(survey, "ostrea_edulis")
+sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
 result <- assess_gear_feasibility(result)
-result <- analyse_connectivity(result)
 
 harbours <- data.frame(
-  name = c("Tarbert","Portavadie"),
-  lat  = c(55.865, 55.875),
-  lon  = c(-5.425, -5.300)
+  name = c("Plymouth"),
+  lat  = c(50.37),
+  lon  = c(-4.14)
 )
-
 result <- score_economic_viability(result, harbours = harbours,
-                                    target = "aquaculture")
-
-# Best aquaculture candidates
-subset(result, viability_class \%in\% c("Good","Excellent"))
-}
+  target = "aquaculture")
+table(result$viability_class)
 }

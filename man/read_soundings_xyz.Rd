@@ -25,7 +25,7 @@ positions for longitude, latitude, and depth. If \code{NULL} (default), the
 function tries common names automatically.}
 
 \item{spatial_res}{Integer. Decimal places for lat/lon binning (default \code{4},
-approx.11 m at 56°N). The rugosity calculation uses the physical cell size
+approx.11 m at 56degrees N). The rugosity calculation uses the physical cell size
 implied by this resolution.}
 
 \item{min_soundings}{Integer. Minimum soundings per cell to include in output
@@ -33,30 +33,29 @@ implied by this resolution.}
 
 \item{depth_positive}{Logical. If \code{TRUE} (default), depth values are already
 positive-downward. Set to \code{FALSE} if your sonar records depth as negative
-(elevation-style) — values will be negated.}
+(elevation-style) -- values will be negated.}
 
 \item{verbose}{Logical. Print processing summary (default \code{TRUE}).}
 }
 \value{
 A dataframe with columns \code{lat}, \code{lon}, \code{depth}, \code{slope},
-\code{roughness}, and \code{n_soundings} — ready for \code{\link[=merge_sensor_data]{merge_sensor_data()}}.
+\code{roughness}, and \code{n_soundings} -- ready for \code{\link[=merge_sensor_data]{merge_sensor_data()}}.
 }
 \description{
 Reads a plain-text XYZ soundings file (comma or space delimited, optional
 \verb{#}-prefixed header), spatially averages onto a regular grid, and derives:
 \itemize{
-\item \strong{\code{depth}} — mean depth per cell (metres, positive downward)
-\item \strong{\code{roughness}} — rugosity index per cell, derived from intra-cell depth
+\item \strong{\code{depth}} -- mean depth per cell (metres, positive downward)
+\item \strong{\code{roughness}} -- rugosity index per cell, derived from intra-cell depth
 variance using the surface-area approximation
 \code{rugosity = sqrt(1 + (depth_sd / cell_size_m)^2)}. Values near 1.0 are
 flat; higher values indicate more complex relief.
-\item \strong{\code{slope}} — maximum downslope gradient in degrees, computed by finite
+\item \strong{\code{slope}} -- maximum downslope gradient in degrees, computed by finite
 differences between neighbouring grid cells (Horn 1981 method).
 }
 }
 \examples{
-\dontrun{
-bathy <- read_soundings_xyz("kames_bay_soundings.xyz")
-survey <- merge_sensor_data(adcp = adcp_data, bathy = bathy)
-}
+bathy_f <- system.file("extdata", "example_bay_soundings.xyz", package = "oystermapR")
+bathy <- read_soundings_xyz(bathy_f, verbose = FALSE)
+head(bathy[, c("lat", "lon", "depth")])
 }

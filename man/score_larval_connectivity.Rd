@@ -32,8 +32,8 @@ days. Takes precedence over species lookup; ignored if \code{dispersal_km} is
 supplied.}
 
 \item{tidal_excursion_km}{Numeric. Mean daily tidal dispersal distance in km
-(default 5 km/day approx. mean current 0.06 m/s × 24 h). Increase for highly
-tidal or estuarine sites (8–15 km/day). Ignored if \code{dispersal_km} is
+(default 5 km/day approx. mean current 0.06 m/s x 24 h). Increase for highly
+tidal or estuarine sites (8--15 km/day). Ignored if \code{dispersal_km} is
 supplied.}
 
 \item{min_suitability}{Numeric. Minimum suitability score for a patch to
@@ -48,7 +48,7 @@ sources.}
 \item \code{dest_lat}, \code{dest_lon}: coordinates of the destination
 \item \code{weight}: connectivity weight [0, 1] (e.g. settlement probability or
 proportional larval flux). Higher = stronger connection.
-OpenDrift export tip: \verb{\dontrun{write.csv(connectivity_matrix, "cm.csv")}}.
+OpenDrift export tip: \verb{\donttest{write.csv(connectivity_matrix, "cm.csv")}}.
 }}
 
 \item{matrix_match_radius_deg}{Numeric. Spatial matching tolerance in decimal
@@ -80,15 +80,15 @@ below min_suitability threshold and no sources nearby)
 Estimates the larval connectivity of each survey location using one or both
 of two approaches:
 
-\strong{Route 1 — Built-in gap-threshold union-find (no external data needed):}
+\strong{Route 1 -- Built-in gap-threshold union-find (no external data needed):}
 Patches above \code{min_suitability} that lie within the species' effective
 dispersal kernel distance are grouped into dispersal clusters using
 union-find. Within each cluster, a connectivity score is derived from the
 number, quality, and distance-weighted contribution of potential larval
 sources (Gaussian decay kernel, sigma = dispersal_km / 2).
 
-\strong{Route 2 — External connectivity matrix (particle tracking / literature):}
-When \code{connectivity_matrix} is supplied (a dataframe of source → destination
+\strong{Route 2 -- External connectivity matrix (particle tracking / literature):}
+When \code{connectivity_matrix} is supplied (a dataframe of source -> destination
 pairs with weights), those weights replace the Gaussian kernel for matched
 pairs. Rows not covered by the matrix fall back to Route 1. The matrix can
 come from:
@@ -105,53 +105,29 @@ If \code{dispersal_km} is not supplied, the effective kernel distance is derived
 from the species' mean pelagic larval duration (PLD) multiplied by
 \code{tidal_excursion_km} (mean daily tidal dispersal distance):
 
-\if{html}{\out{<div class="sourceCode">}}\preformatted{dispersal_km = PLD_mean_days × tidal_excursion_km
+\if{html}{\out{<div class="sourceCode">}}\preformatted{dispersal_km = PLD_mean_days x tidal_excursion_km
 }\if{html}{\out{</div>}}
 
 PLD values are literature-derived:\tabular{llll}{
    Species \tab PLD \tab Larval type \tab Default dispersal \cr
-   \emph{O. edulis} \tab 1–7 days \tab lecithotrophic \tab ~20 km \cr
-   \emph{M. gigas} \tab 14–28 days \tab planktotrophic \tab ~105 km \cr
-   \emph{C. angulata} \tab 14–21 days \tab planktotrophic \tab ~85 km \cr
-   \emph{O. stentina} \tab 2–7 days \tab lecithotrophic \tab ~20 km \cr
-   \emph{O. lurida} \tab 3–10 days \tab lecithotrophic \tab ~30 km \cr
+   \emph{O. edulis} \tab 1--7 days \tab lecithotrophic \tab ~20 km \cr
+   \emph{M. gigas} \tab 14--28 days \tab planktotrophic \tab ~105 km \cr
+   \emph{C. angulata} \tab 14--21 days \tab planktotrophic \tab ~85 km \cr
+   \emph{O. stentina} \tab 2--7 days \tab lecithotrophic \tab ~20 km \cr
+   \emph{O. lurida} \tab 3--10 days \tab lecithotrophic \tab ~30 km \cr
 }
 }
 
 \examples{
-\dontrun{
-result <- predict_oyster(survey, "ostrea_edulis")
-
-# Route 1 only — built-in dispersal kernel
+sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
 result <- score_larval_connectivity(result, species = "ostrea_edulis")
-
-# Route 1 with custom dispersal distance (e.g. strong tidal excursion)
-result <- score_larval_connectivity(result, species = "ostrea_edulis",
-                                    tidal_excursion_km = 10)
-
-# Route 1 with manual dispersal override
-result <- score_larval_connectivity(result, dispersal_km = 8)
-
-# Route 2 — external connectivity matrix from OpenDrift
-cm <- read.csv("opendrift_connectivity.csv")
-# Required columns: source_lat, source_lon, dest_lat, dest_lon, weight
-result <- score_larval_connectivity(result,
-           species             = "ostrea_edulis",
-           connectivity_matrix = cm)
-
-# Inspect isolated patches — need artificial seeding
-isolated <- subset(result,
-  larval_connectivity_class == "Isolated" & suitability_class == "High")
-
-# Strong candidates: high suitability AND high connectivity
-targets <- subset(result,
-  suitability_class == "High" & larval_connectivity_class == "Highly connected")
-}
+table(result$larval_connectivity_class)
 }
 \references{
-Cowen R.K. & Sponaugle S. (2009) Annual Review of Marine Science 1:443–466.
-Robins P.E. et al. (2017) J Applied Ecology 54:1699–1710. \doi{10.1111/1365-2664.12854}
-Siegel D.A. et al. (2008) PNAS 105:8974–8979.
-Woolmer A.P. et al. (2009) J Shellfish Research 28:107–116.
-Trimble A.C. et al. (2009) J Shellfish Research 28:43–53.
+Cowen R.K. & Sponaugle S. (2009) Annual Review of Marine Science 1:443--466.
+Robins P.E. et al. (2017) J Applied Ecology 54:1699--1710. \doi{10.1111/1365-2664.12854}
+Siegel D.A. et al. (2008) PNAS 105:8974--8979.
+Woolmer A.P. et al. (2009) J Shellfish Research 28:107--116.
+Trimble A.C. et al. (2009) J Shellfish Research 28:43--53.
 }

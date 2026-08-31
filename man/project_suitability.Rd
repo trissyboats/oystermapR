@@ -36,7 +36,7 @@ Named list:
 \itemize{
 \item One dataframe per scenario (named by scenario key) with \code{suitability},
 \code{suitability_class}, and \code{suitability_delta} columns.
-\item \code{"summary"} — dataframe comparing mean suitability, class breakdown,
+\item \code{"summary"} -- dataframe comparing mean suitability, class breakdown,
 and net change vs baseline across all scenarios.
 }
 }
@@ -49,9 +49,9 @@ temperature and salinity, and multiplicative factors to other variables.
 Built-in scenarios align with UKCP18 marine projections for NW European
 shelf seas:\tabular{llll}{
    Scenario \tab SST delta \tab Salinity delta \tab Notes \cr
-   RCP2.6/SSP1 \tab +0.5°C \tab 0.0 PSU \tab Low emissions, best case \cr
-   RCP4.5/SSP2 \tab +1.2°C \tab -0.2 PSU \tab Intermediate emissions \cr
-   RCP8.5/SSP5 \tab +2.5°C \tab -0.5 PSU \tab High emissions, worst case \cr
+   RCP2.6/SSP1 \tab +0.5degrees C \tab 0.0 PSU \tab Low emissions, best case \cr
+   RCP4.5/SSP2 \tab +1.2degrees C \tab -0.2 PSU \tab Intermediate emissions \cr
+   RCP8.5/SSP5 \tab +2.5degrees C \tab -0.5 PSU \tab High emissions, worst case \cr
    Custom \tab user \tab user \tab Supply your own deltas \cr
 }
 
@@ -61,23 +61,13 @@ with one result dataframe per scenario, plus a comparison summary and a
 \code{suitability_delta} column (projected minus baseline) for each.
 }
 \examples{
-\dontrun{
-result <- predict_oyster(survey, "ostrea_edulis")
+sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
 tol    <- get_species_tolerances("ostrea_edulis")
-
-# Project under all three UKCP18-aligned scenarios
-proj <- project_suitability(result, tol)
-
-# Mean suitability change by scenario
+proj   <- project_suitability(result, tol)
 proj$summary
-
-# High-risk cells: currently High but drops to Low under RCP8.5
+# Cells currently High that become Low under RCP8.5
 vulnerable <- subset(proj$rcp85,
   result$suitability_class == "High" & suitability_class == "Low")
-
-# Custom scenario (e.g. local downscaled projection)
-proj2 <- project_suitability(result, tol, scenarios = NULL,
-  custom_deltas = list(
-    ukcp18_p95 = c(temperature = 3.2, salinity = -0.8)))
-}
+nrow(vulnerable)
 }

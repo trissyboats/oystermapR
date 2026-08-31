@@ -50,28 +50,28 @@
 #'
 #' @section Sensor compatibility:
 #' The package is designed around data collectable with:
-#' - **Nortek Signature 500 ADCP** — current velocity, shear stress, turbidity
+#' - **Nortek Signature 500 ADCP** -- current velocity, shear stress, turbidity
 #'   proxy (read with [read_nortek_adcp()])
-#' - **Ping 3DSS iDX450 PRO Bathymetric Sonar** — depth, slope, roughness
+#' - **Ping 3DSS iDX450 PRO Bathymetric Sonar** -- depth, slope, roughness
 #'   (read with [read_sonar_tif()])
-#' - **Lowrance + BioBase** — depth, bottom hardness, vegetation, sidescan
-#' - **Salinity/temperature probes** — temperature, salinity, dissolved oxygen
+#' - **Lowrance + BioBase** -- depth, bottom hardness, vegetation, sidescan
+#' - **Salinity/temperature probes** -- temperature, salinity, dissolved oxygen
 #'
 #' @section Validation and model diagnostics:
 #' Validation functions for research-grade use:
 #' - [validate_against_records()]: AUC, TSS, Brier score, F1, sensitivity,
 #'   specificity vs known presence/absence records.
 #' - [spatial_block_cv()]: Spatial block cross-validation (Roberts et al. 2017)
-#'   — avoids inflated AUC from spatially autocorrelated data.
+#'   -- avoids inflated AUC from spatially autocorrelated data.
 #' - [permutation_importance()]: Variable importance by AUC drop after
 #'   permuting each scored variable.
-#' - [sensitivity_analysis()]: Partial dependence curve — suitability vs a
+#' - [sensitivity_analysis()]: Partial dependence curve -- suitability vs a
 #'   single variable while others are held at their median.
 #'
 #' @section Bayesian tolerance updating:
 #' Tolerance parameters (optimal ranges) can be updated from field observations:
 #' - [update_species_tolerances()]: MAP + Laplace approximation (fast) or
-#'   RWMH MCMC (full posterior). Sequential — posterior becomes next prior.
+#'   RWMH MCMC (full posterior). Sequential -- posterior becomes next prior.
 #' - [get_tolerance_posteriors()]: Retrieve updated parameters with 95% CIs.
 #' - [save_tolerance_update()] / [load_tolerance_update()]: Persist across sessions.
 #' - [reset_tolerance_update()]: Revert to built-in prior parameters.
@@ -120,7 +120,7 @@
 #' @importFrom dplyr case_when recode filter coalesce full_join group_by summarise mutate select left_join across all_of first n
 #' @importFrom cli cli_inform cli_warn cli_abort cli_h2 cli_h3 cli_rule cli_code
 #' @importFrom rlang `%||%`
-#' @importFrom utils read.csv browseURL install.packages
+#' @importFrom utils read.csv browseURL
 #' @importFrom stats sd quantile median rnorm lm coef var predict complete.cases dnorm optim runif
 #' @importFrom tools file_ext
 "_PACKAGE"
@@ -149,6 +149,8 @@ utils::globalVariables(c(
   # read_nortek_adcp dplyr column names
   "gps_lat", "gps_lon", "date_str", "spd_clean",
   "tau", "n_ensembles", "current_velocity",
+  # read_nortek_aquadopp / read_rdi_adcp dplyr column names
+  "lat_src", "lon_src", "temperature_src", "pressure_src",
   # base R functions that R CMD check flags as "not visible"
   "setNames"
 ))

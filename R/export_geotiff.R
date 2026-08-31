@@ -3,30 +3,34 @@
 #' @description
 #' Takes the scored point dataset from [predict_oyster()] and produces a
 #' **smooth, continuous raster heatmap** using Inverse Distance Weighting (IDW)
-#' interpolation — the same technique used by systems like Lowrance BioBase.
+#' interpolation -- the same technique used by systems like Lowrance BioBase.
 #' The result looks like a fluid heat surface over your survey area rather than
 #' isolated point squares.
 #'
-#' The output GeoTIFF contains three bands:
-#' 1. **suitability** — IDW-interpolated score \[0, 1\]. Use this for the heatmap.
-#' 2. **excluded_mask** — 1 where a survey point was hard-excluded, 0 otherwise.
-#' 3. **n_observations** — how many survey points fell within each raster cell
+#' The output GeoTIFF contains five bands:
+#' 1. **suitability** -- IDW-interpolated score \[0, 1\]. Use this for the heatmap.
+#' 2. **excluded_mask** -- 1 where a survey point was hard-excluded, 0 otherwise.
+#' 3. **n_observations** -- how many survey points fell within each raster cell
 #'    (data density diagnostic).
+#' 4. **dist_to_nearest_m** -- distance in metres from each cell centre to the
+#'    nearest survey point (use as a QGIS transparency mask to fade extrapolated areas).
+#' 5. **n_layers_scored** -- number of environmental variables that contributed to
+#'    the suitability score at each survey point (data completeness overlay).
 #'
 #' @param df A dataframe processed by [predict_oyster()], containing columns
 #'   `lat`, `lon`, `suitability`, `excluded`.
 #' @param path Character. Output `.tif` file path.
 #' @param resolution Numeric. Raster cell size in decimal degrees. Default
-#'   `0.0002` approx. 22 m — matches the typical 4-decimal-place survey grid. For
+#'   `0.0002` approx. 22 m -- matches the typical 4-decimal-place survey grid. For
 #'   large estuary surveys increase to `0.001` (100 m); for very detailed
 #'   harbour surveys decrease to `0.0001` (~11 m).
 #' @param idw_power Numeric. IDW distance decay exponent (default `2`). Higher
 #'   values make the surface honour nearby points more tightly and decay faster
-#'   with distance — producing sharper gradients. Lower values (e.g. 1) give
+#'   with distance -- producing sharper gradients. Lower values (e.g. 1) give
 #'   broader, smoother spread.
 #' @param idw_max_dist Numeric or `NULL`. Maximum search radius in degrees for
 #'   IDW interpolation. If `NULL` (default), the radius is automatically set to
-#'   5× the median nearest-neighbour spacing between survey points — so the
+#'   5x the median nearest-neighbour spacing between survey points -- so the
 #'   heatmap fills gaps between transect lines but does not bleed onto land or
 #'   beyond the survey boundary. Override with an explicit value (e.g. `0.003`
 #'   approx. 330 m) if needed.
@@ -36,7 +40,7 @@
 #'   beyond the survey boundary.
 #' @param contours Logical. If `TRUE` (default), automatically export contour
 #'   lines as a GeoPackage alongside the GeoTIFF using [export_contours()].
-#' @param crs Character. CRS string (default `"EPSG:4326"` — WGS84). Use a
+#' @param crs Character. CRS string (default `"EPSG:4326"` -- WGS84). Use a
 #'   projected CRS (e.g. `"EPSG:32630"`) if your coordinates are in metres.
 #' @param overwrite Logical. Overwrite existing file (default `TRUE`).
 #'
@@ -45,18 +49,11 @@
 #'
 #' @export
 #' @examples
-#' \dontrun{
-#' result <- predict_oyster("survey.csv", "ostrea_edulis")
-#'
-#' # Standard export — smooth heatmap with auto radius and contours
-#' export_geotiff(result, "oyster_heatmap.tif")
-#'
-#' # Finer resolution for a small harbour survey
-#' export_geotiff(result, "oyster_heatmap.tif", resolution = 0.0001)
-#'
-#' # Override IDW radius explicitly (e.g. sparse transect data)
-#' export_geotiff(result, "oyster_heatmap.tif", idw_max_dist = 0.005)
-#' }
+#' sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+#' result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
+#' out_tif <- file.path(tempdir(), "oyster_heatmap.tif")
+#' export_geotiff(result, out_tif)
+#' file.exists(out_tif)
 export_geotiff <- function(df,
                            path,
                            resolution   = 0.0002,
@@ -162,8 +159,25 @@ export_geotiff <- function(df,
   terra::values(dist_rast) <- dist_vals
   names(dist_rast) <- "dist_to_nearest_m"
 
+  # ---- Band 5: Data layers used (n_layers_scored per point) ------------------
+  # Shows how many environmental variables contributed to the score at each
+  # survey point. Low values flag data-sparse locations. Load in QGIS alongside
+  # the suitability surface to identify areas where the score rests on few inputs.
+  if ("n_layers_scored" %in% names(df)) {
+    df$n_layers_int <- as.integer(df$n_layers_scored)
+    pts_lyr  <- terra::vect(df, geom = c("lon", "lat"), crs = crs)
+    lyr_rast <- terra::rasterize(pts_lyr, r_template,
+                                 field = "n_layers_int",
+                                 fun   = min, na.rm = TRUE)  # min = most data-sparse cell
+    names(lyr_rast) <- "n_layers_scored"
+  } else {
+    lyr_rast <- r_template
+    terra::values(lyr_rast) <- NA_real_
+    names(lyr_rast) <- "n_layers_scored"
+  }
+
   # ---- Stack and write --------------------------------------------------------
-  stack <- c(suit_rast, excl_rast, cnt_rast, dist_rast)
+  stack <- c(suit_rast, excl_rast, cnt_rast, dist_rast, lyr_rast)
 
   terra::writeRaster(stack,
                      filename  = path,
@@ -327,10 +341,11 @@ export_geotiff <- function(df,
 #' @return The `.gpkg` file path (invisibly).
 #' @export
 #' @examples
-#' \dontrun{
-#' export_geotiff(result, "oyster_heatmap.tif")
-#' export_contours("oyster_heatmap.tif")
-#' }
+#' sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+#' result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
+#' out_tif <- file.path(tempdir(), "oyster_heatmap.tif")
+#' export_geotiff(result, out_tif)
+#' export_contours(out_tif)
 export_contours <- function(tif_path,
                             interval  = 0.1,
                             gpkg_path = NULL) {
@@ -361,9 +376,9 @@ export_contours <- function(tif_path,
 #' Export a QGIS colour style (.qml) matching the BioBase orange/red heatmap
 #'
 #' @description
-#' Writes a QGIS Layer Style file (`.qml`) using a yellow → orange → red →
+#' Writes a QGIS Layer Style file (`.qml`) using a yellow -> orange -> red ->
 #' dark red colour ramp, closely matching the BioBase/Lowrance heatmap style.
-#' The file is automatically applied when its name matches the `.tif` — no
+#' The file is automatically applied when its name matches the `.tif` -- no
 #' manual styling needed in QGIS.
 #'
 #' @param tif_path Character. Path to the `.tif` from [export_geotiff()].

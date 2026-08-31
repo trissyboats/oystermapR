@@ -18,7 +18,7 @@ Returns the mean spring tidal range (MHWS - MLWS) and typical Chart Datum
 offset from Mean Sea Level for a named port. Useful for a quick sanity check
 on tidal height values before applying \code{\link[=correct_to_chart_datum]{correct_to_chart_datum()}}.
 
-This is a reference table only — always use official tide table predictions
+This is a reference table only -- always use official tide table predictions
 for actual corrections.
 }
 \examples{

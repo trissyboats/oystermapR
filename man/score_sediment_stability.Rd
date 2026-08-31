@@ -21,11 +21,11 @@ score_sediment_stability(
 Key optional columns (column names configurable via arguments):
 \itemize{
 \item \code{current_ms}: depth-averaged current speed (m/s)
-\item \code{wave_hs_m}: significant wave height (m) — from \code{score_wave_exposure()}
+\item \code{wave_hs_m}: significant wave height (m) -- from \code{score_wave_exposure()}
 or direct measurement
-\item \code{depth_m}: water depth (m) — needed for wave orbital velocity
-\item \code{substrate}: substrate classification string — used to estimate d50
-\item \code{d50_mm}: median grain diameter (mm) — overrides substrate-derived d50
+\item \code{depth_m}: water depth (m) -- needed for wave orbital velocity
+\item \code{substrate}: substrate classification string -- used to estimate d50
+\item \code{d50_mm}: median grain diameter (mm) -- overrides substrate-derived d50
 }}
 
 \item{current_col}{Character. Column name for depth-averaged current speed
@@ -56,7 +56,7 @@ velocity calculation. Default 8 s (typical NW European sea state).}
 \item \code{shields_parameter}: Shields number theta at each site
 \item \code{shields_critical}: critical Shields number theta_cr for the substrate d50
 \item \code{mobility_ratio}: theta / theta_cr (> 1.0 = mobile; < 1.0 = stable)
-\item \code{d50_mm_estimated}: grain size used (mm) — measured or substrate-derived
+\item \code{d50_mm_estimated}: grain size used (mm) -- measured or substrate-derived
 \item \code{sediment_stability_score} [0,1]: 1 = fully stable, 0 = highly mobile
 \item \code{sediment_mobility_class}: "Stable" / "Marginally stable" / "Mobile" / "Highly mobile"
 \item \code{sediment_stability_note}: management flag
@@ -76,16 +76,11 @@ substrate type column if not directly measured.
 }
 
 \examples{
-\dontrun{
-# With current velocity and substrate type columns
-result <- score_sediment_stability(result, current_col="current_ms", substrate_col="substrate")
+sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
 
-# After score_wave_exposure() — wave_hs_m column already present
-result <- score_wave_exposure(result, fetch_km=15)
-result <- score_sediment_stability(result)
-
-# With measured grain size
-result$d50_mm <- c(0.25, 2.5, 15.0, 0.08)
-result <- score_sediment_stability(result)
-}
+# Using current_velocity and sediment_type columns from the survey
+result <- score_sediment_stability(result,
+  current_col = "current_velocity", substrate_col = "sediment_type")
+table(result$sediment_stability_class)
 }

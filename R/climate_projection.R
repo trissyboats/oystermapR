@@ -21,9 +21,9 @@
 #'
 #' | Scenario    | SST delta | Salinity delta | Notes                        |
 #' |-------------|-----------|----------------|------------------------------|
-#' | RCP2.6/SSP1 | +0.5°C    | 0.0 PSU        | Low emissions, best case     |
-#' | RCP4.5/SSP2 | +1.2°C    | -0.2 PSU       | Intermediate emissions       |
-#' | RCP8.5/SSP5 | +2.5°C    | -0.5 PSU       | High emissions, worst case   |
+#' | RCP2.6/SSP1 | +0.5degrees C    | 0.0 PSU        | Low emissions, best case     |
+#' | RCP4.5/SSP2 | +1.2degrees C    | -0.2 PSU       | Intermediate emissions       |
+#' | RCP8.5/SSP5 | +2.5degrees C    | -0.5 PSU       | High emissions, worst case   |
 #' | Custom      | user      | user           | Supply your own deltas       |
 #'
 #' The function runs `score_locations()` for each scenario and returns a list
@@ -45,30 +45,20 @@
 #' @return Named list:
 #'   - One dataframe per scenario (named by scenario key) with `suitability`,
 #'     `suitability_class`, and `suitability_delta` columns.
-#'   - `"summary"` — dataframe comparing mean suitability, class breakdown,
+#'   - `"summary"` -- dataframe comparing mean suitability, class breakdown,
 #'     and net change vs baseline across all scenarios.
 #'
 #' @export
 #' @examples
-#' \dontrun{
-#' result <- predict_oyster(survey, "ostrea_edulis")
+#' sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+#' result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
 #' tol    <- get_species_tolerances("ostrea_edulis")
-#'
-#' # Project under all three UKCP18-aligned scenarios
-#' proj <- project_suitability(result, tol)
-#'
-#' # Mean suitability change by scenario
+#' proj   <- project_suitability(result, tol)
 #' proj$summary
-#'
-#' # High-risk cells: currently High but drops to Low under RCP8.5
+#' # Cells currently High that become Low under RCP8.5
 #' vulnerable <- subset(proj$rcp85,
 #'   result$suitability_class == "High" & suitability_class == "Low")
-#'
-#' # Custom scenario (e.g. local downscaled projection)
-#' proj2 <- project_suitability(result, tol, scenarios = NULL,
-#'   custom_deltas = list(
-#'     ukcp18_p95 = c(temperature = 3.2, salinity = -0.8)))
-#' }
+#' nrow(vulnerable)
 project_suitability <- function(result,
                                  tolerances,
                                  scenarios      = c("rcp26", "rcp45", "rcp85"),
@@ -218,11 +208,12 @@ project_suitability <- function(result,
 #'
 #' @export
 #' @examples
-#' \dontrun{
-#' proj      <- project_suitability(result, tol)
+#' sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+#' result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
+#' tol    <- get_species_tolerances("ostrea_edulis")
+#' proj   <- project_suitability(result, tol)
 #' resilient <- identify_resilient_sites(proj, result, min_class = "Moderate")
-#' nrow(resilient)  # sites that stay Moderate+ even under RCP8.5
-#' }
+#' nrow(resilient)
 identify_resilient_sites <- function(projections,
                                       baseline,
                                       min_class = "Moderate") {
@@ -248,7 +239,7 @@ identify_resilient_sites <- function(projections,
     "i" = paste0(sum(all_qualify), " of ", nrow(baseline),
                  " locations maintain ", min_class,
                  "+ suitability across all ", length(scenario_keys),
-                 " scenario{?s}.")
+                 if (length(scenario_keys) == 1L) " scenario." else " scenarios.")
   ))
 
   out

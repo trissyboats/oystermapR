@@ -19,8 +19,6 @@ Clears the session cache for a species, reverting to the built-in prior
 parameters. Does not affect saved files (use file deletion for those).
 }
 \examples{
-\dontrun{
 reset_tolerance_update("ostrea_edulis")
 reset_tolerance_update("all")
-}
 }

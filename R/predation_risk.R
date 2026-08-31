@@ -26,26 +26,26 @@
 #' @description
 #' Produces a predation risk index (0 = negligible, 1 = severe) based on
 #' predator occurrence data, substrate rugosity, and depth. The output is
-#' intended as an **overlay** on ecological suitability — high predation risk
+#' intended as an **overlay** on ecological suitability -- high predation risk
 #' does not reduce the habitat suitability score directly but is flagged in
 #' a separate column for management planning (e.g. cage exclusion, deep
 #' subtidal placement to avoid intertidal drills).
 #'
 #' **Input options (in priority order):**
-#' 1. `predator_data` — manually supplied dataframe with predator records
+#' 1. `predator_data` -- manually supplied dataframe with predator records
 #'    (see Details).
-#' 2. `fetch_live = TRUE` — queries EMODnet Biology for *Asterias rubens* and
+#' 2. `fetch_live = TRUE` -- queries EMODnet Biology for *Asterias rubens* and
 #'    *Carcinus maenas* occurrence records within the survey extent. Requires
 #'    internet access and the `httr` package.
-#' 3. Neither — returns a depth-proxy-only risk score with a warning.
+#' 3. Neither -- returns a depth-proxy-only risk score with a warning.
 #'
 #' @section predator_data format:
 #' A dataframe with columns:
-#' - `lat`, `lon` — coordinates
-#' - `species` — species name or AphiaID (character)
-#' - `density` (optional) — relative abundance / density index; if absent,
+#' - `lat`, `lon` -- coordinates
+#' - `species` -- species name or AphiaID (character)
+#' - `density` (optional) -- relative abundance / density index; if absent,
 #'   each record is treated as presence-only (density = 1)
-#' - `date` (optional) — survey date (used to filter to relevant season)
+#' - `date` (optional) -- survey date (used to filter to relevant season)
 #'
 #' @param result Dataframe from [predict_oyster()] with `lat`, `lon`, and
 #'   optionally `depth_m` and `substrate` columns.
@@ -53,7 +53,7 @@
 #' @param fetch_live Logical. Query EMODnet Biology API (default FALSE).
 #' @param match_radius_m Numeric. Radius in metres within which predator
 #'   records are aggregated per survey cell (default 1000 m).
-#' @param species Character. Target oyster species — affects which predators
+#' @param species Character. Target oyster species -- affects which predators
 #'   are most relevant (`"ostrea_edulis"` or `"magallana_gigas"`).
 #' @param verbose Logical. Default TRUE.
 #'
@@ -65,17 +65,16 @@
 #'
 #' @export
 #' @examples
-#' \dontrun{
-#' # Manual data
-#' pred <- data.frame(lat=51.5, lon=-4.1, species="Asterias rubens", density=3)
-#' result <- score_predation_risk(result, predator_data=pred, species="ostrea_edulis")
+#' sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+#' result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
 #'
-#' # Live EMODnet fetch
-#' result <- score_predation_risk(result, fetch_live=TRUE)
-#'
-#' # Depth-proxy only (no predator data)
+#' # Depth-proxy only (no external data needed)
 #' result <- score_predation_risk(result)
-#' }
+#' table(result$predation_risk_class)
+#'
+#' # With manual predator observations
+#' pred <- data.frame(lat=50.25, lon=-4.12, species="Asterias rubens", density=3)
+#' result <- score_predation_risk(result, predator_data=pred, species="ostrea_edulis")
 score_predation_risk <- function(result,
                                   predator_data   = NULL,
                                   fetch_live      = FALSE,

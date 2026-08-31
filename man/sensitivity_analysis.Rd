@@ -58,27 +58,11 @@ Partial dependence is a standard diagnostic for SDM publication (Elith et al.
 responses match ecological expectations before submission.
 }
 \examples{
-\dontrun{
-result <- predict_oyster(survey, "ostrea_edulis")
-
-# Temperature response curve
+sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
 temp_pd <- sensitivity_analysis(result, "ostrea_edulis", "temperature")
-plot(temp_pd$x, temp_pd$suitability, type="l",
-     xlab="Temperature (°C)", ylab="Suitability",
-     main="Partial dependence: temperature")
-
-# Salinity response (summer)
-sal_pd <- sensitivity_analysis(result, "ostrea_edulis", "salinity",
-                               season = "summer")
-
-# ggplot2 version
-library(ggplot2)
-ggplot(temp_pd, aes(x, suitability)) +
-  geom_line(colour="steelblue", linewidth=1.2) +
-  geom_ribbon(aes(ymin=0, ymax=suitability), alpha=0.2, fill="steelblue") +
-  labs(x="Temperature (°C)", y="Suitability \[0-1\]") +
-  theme_minimal()
-}
+plot(temp_pd$x, temp_pd$suitability, type = "l",
+     xlab = "Temperature (degrees C)", ylab = "Suitability [0-1]")
 }
 \references{
 Elith et al. (2008) J Animal Ecology 77:802-813.

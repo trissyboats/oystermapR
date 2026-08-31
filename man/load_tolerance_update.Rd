@@ -4,13 +4,18 @@
 \alias{load_tolerance_update}
 \title{Load saved Bayesian tolerance updates into session cache}
 \usage{
-load_tolerance_update(species = "all", path = "~/.oystermapR", verbose = TRUE)
+load_tolerance_update(
+  species = "all",
+  path = tools::R_user_dir("oystermapR", which = "data"),
+  verbose = TRUE
+)
 }
 \arguments{
 \item{species}{Character. Species key or \code{"all"} to load all \code{.rds} files
 in \code{path}.}
 
-\item{path}{Character. Directory to load from (default: \verb{~/.oystermapR/}).}
+\item{path}{Character. Directory to load from (default:
+\code{tools::R_user_dir("oystermapR", "data")}).}
 
 \item{verbose}{Logical. Default TRUE.}
 }
@@ -23,9 +28,30 @@ restores it into the session cache. Subsequent calls to \code{\link[=predict_oys
 and \code{\link[=score_locations]{score_locations()}} will automatically use the loaded parameters.
 }
 \examples{
-\dontrun{
-load_tolerance_update("ostrea_edulis")
-# Now predict_oyster() uses the updated tolerances automatically
-result <- predict_oyster(survey, "ostrea_edulis")
-}
+# Save a Bayesian update to tempdir first, then load it back
+records <- data.frame(
+  lat = c(51.5, 51.6, 51.7, 51.8, 51.4, 51.55, 51.65, 51.72,
+          51.83, 51.42, 51.50, 51.60, 51.70, 51.80, 51.40,
+          51.53, 51.63, 51.73, 51.83, 51.43),
+  lon = c(-4.1, -4.2, -4.0, -4.3, -4.15, -4.05, -4.25, -4.12,
+          -4.08, -4.18, -4.11, -4.21, -4.01, -4.31, -4.16,
+          -4.06, -4.26, -4.13, -4.09, -4.19),
+  temperature = c(12, 13, 11, 14, 12.5, 13.5, 11.5, 12.8,
+                  13.2, 11.8, 12.1, 13.1, 11.1, 14.1, 12.4,
+                  13.4, 11.4, 12.7, 13.3, 11.7),
+  salinity = c(34, 35, 33, 36, 34.5, 35.5, 33.5, 34.8,
+               35.2, 33.8, 34.1, 35.1, 33.1, 36.1, 34.4,
+               35.4, 33.4, 34.7, 35.3, 33.7),
+  depth = c(5, 8, 12, 3, 7, 10, 6, 9, 4, 11, 5.5, 8.5,
+            12.5, 3.5, 7.5, 10.5, 6.5, 9.5, 4.5, 11.5),
+  presence = c(1L, 1L, 1L, 0L, 1L, 1L, 1L, 1L, 0L, 1L,
+               1L, 1L, 0L, 0L, 1L, 1L, 1L, 1L, 0L, 1L)
+)
+update_species_tolerances(records, "ostrea_edulis",
+  update_vars = c("temperature", "salinity", "depth"),
+  min_records = 20L, verbose = FALSE)
+tmp <- file.path(tempdir(), "bayes_updates")
+save_tolerance_update("ostrea_edulis", path = tmp, verbose = FALSE)
+reset_tolerance_update("ostrea_edulis")           # clear cache
+load_tolerance_update("ostrea_edulis", path = tmp) # reload
 }

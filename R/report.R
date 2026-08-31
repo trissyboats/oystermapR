@@ -10,7 +10,7 @@
 #' per-variable scoring table, most common limiting factors, top introduction
 #' sites, and a methodology section.
 #'
-#' Output format is PDF by default (requires a LaTeX installation — see Note
+#' Output format is PDF by default (requires a LaTeX installation -- see Note
 #' below). HTML is also supported and requires no additional system software.
 #'
 #' @param result A dataframe returned by [predict_oyster()].
@@ -53,7 +53,7 @@
 #' result <- predict_oyster(survey, "ostrea_edulis",
 #'                          output_geotiff = "kames_bay.tif")
 #'
-#' # Standard HTML report (recommended — Plotly charts, no LaTeX needed)
+#' # Standard HTML report (recommended -- Plotly charts, no LaTeX needed)
 #' generate_report(result, "kames_bay_report.html",
 #'                 title  = "Kames Bay Oyster Habitat Assessment",
 #'                 author = "T. Tucker")
@@ -83,33 +83,25 @@ generate_report <- function(result,
                             comparison = NULL,
                             open       = TRUE) {
 
-  # ---- Auto-install missing dependencies -------------------------------------
-  .ensure_pkg <- function(pkg, reason = NULL) {
-    if (!requireNamespace(pkg, quietly = TRUE)) {
-      msg <- if (!is.null(reason)) reason else
-        paste0("Required for generate_report(): installing {", pkg, "} now.")
-      cli::cli_inform(paste0("i" = msg))
-      utils::install.packages(pkg, quiet = TRUE)
-      if (!requireNamespace(pkg, quietly = TRUE)) {
-        cli::cli_abort(c(
-          "Could not install package {.pkg {pkg}}.",
-          "i" = "Please run: {.code install.packages('{pkg}')} manually."
-        ))
-      }
-      cli::cli_inform(paste0("\u2713 ", pkg, " installed successfully."))
-    }
+  # ---- Check required Suggests -----------------------------------------------
+  for (pkg in c("rmarkdown", "knitr")) {
+    if (!requireNamespace(pkg, quietly = TRUE))
+      cli::cli_abort(c(
+        "Package {.pkg {pkg}} is required by {.fn generate_report}.",
+        "i" = "Install it with: {.code install.packages('{pkg}')}"
+      ))
   }
-
-  .ensure_pkg("rmarkdown", "Package rmarkdown is required to render reports.")
-  .ensure_pkg("knitr",     "Package knitr is required to render reports.")
 
   # HTML reports use Plotly for interactive charts
   ext_check <- tolower(tools::file_ext(output))
   if (ext_check == "html") {
-    .ensure_pkg("plotly",     "Package plotly is required for interactive HTML charts.")
-    .ensure_pkg("scales",     "Package scales is required for HTML colour mapping.")
-    .ensure_pkg("htmlwidgets","Package htmlwidgets is required to embed Plotly in HTML.")
-    .ensure_pkg("leaflet",    "Package leaflet is required for the interactive spatial map.")
+    for (pkg in c("plotly", "scales", "htmlwidgets", "leaflet")) {
+      if (!requireNamespace(pkg, quietly = TRUE))
+        cli::cli_abort(c(
+          "Package {.pkg {pkg}} is required for HTML reports.",
+          "i" = "Install it with: {.code install.packages('{pkg}')}"
+        ))
+    }
   }
 
   # ---- Resolve format --------------------------------------------------------

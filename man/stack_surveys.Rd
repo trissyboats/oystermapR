@@ -11,7 +11,7 @@ stack_surveys(..., spatial_res = 4L, verbose = TRUE)
 \code{lat} and \code{lon} columns.}
 
 \item{spatial_res}{Integer. Decimal places for the common spatial grid
-(default \code{4}, approx.11 m at 56°N).}
+(default \code{4}, approx.11 m at 56degrees N).}
 
 \item{verbose}{Logical. Print a summary (default \code{TRUE}).}
 }
@@ -24,7 +24,7 @@ Monday and again on Thursday) by row-binding them and re-averaging
 overlapping cells onto a common spatial grid. Non-overlapping cells are
 kept as-is.
 
-This is the right tool when you have repeated surveys of the same area —
+This is the right tool when you have repeated surveys of the same area --
 rather than picking one run, overlapping cells are averaged across all runs
 which improves noise reduction. Non-overlapping cells (different survey
 extents) are preserved.
@@ -33,12 +33,9 @@ After stacking, pass the result into \code{\link[=merge_sensor_data]{merge_senso
 other sensor datasets as usual.
 }
 \examples{
-\dontrun{
-# Stack two ADCP runs before merging with other sensors
-adcp_mon <- read_nortek_adcp("survey_monday.csv")
-adcp_thu <- read_nortek_adcp("survey_thursday.csv")
-adcp_all <- stack_surveys(adcp_mon, adcp_thu)
-
-survey <- merge_sensor_data(adcp = adcp_all, bathy = bathy_df)
-}
+adcp_f <- system.file("extdata", "example_bay_adcp.csv", package = "oystermapR")
+run1 <- read_nortek_adcp(adcp_f, verbose = FALSE)
+run2 <- read_nortek_adcp(adcp_f, verbose = FALSE)
+adcp_all <- stack_surveys(run1, run2)
+nrow(adcp_all)
 }

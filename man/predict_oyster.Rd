@@ -16,12 +16,18 @@ predict_oyster(
 \arguments{
 \item{data}{A dataframe or a file path to a CSV file. Must contain at minimum:
 \itemize{
-\item \strong{\code{lon}} / \strong{\code{lng}} / \strong{\code{longitude}} — longitude in decimal degrees
-\item \strong{\code{lat}} / \strong{\code{latitude}} — latitude in decimal degrees
-\item \strong{\code{date}} — observation date (any format coercible by \code{as.Date()})
+\item \strong{\code{lon}} / \strong{\code{lng}} / \strong{\code{longitude}} -- longitude in decimal degrees
+\item \strong{\code{lat}} / \strong{\code{latitude}} -- latitude in decimal degrees
+\item \strong{\code{date}} -- observation date (any format coercible by \code{as.Date()})
 Additional environmental columns are matched automatically; see
 \strong{Column Naming} below.
-}}
+}
+
+\strong{Aragonite auto-calculation:} if the data contains \code{ph} (or a recognised
+synonym) and \code{alkalinity} columns alongside \code{temperature} and \code{salinity},
+\code{predict_oyster()} will automatically compute \code{omega_aragonite} using the
+in-house \code{\link[=calculate_aragonite]{calculate_aragonite()}} function before scoring. You can also
+pre-compute it and supply \code{omega_aragonite} directly.}
 
 \item{species}{Character string identifying the target oyster species.
 Accepts the key (\code{"ostrea_edulis"}), latin name, or common name.
@@ -71,13 +77,13 @@ Column names are matched case-insensitively. Recognised synonyms:\tabular{ll}{
    Longitude \tab \code{lon}, \code{lng}, \code{longitude}, \code{x} \cr
    Latitude \tab \code{lat}, \code{latitude}, \code{y} \cr
    Date \tab \code{date}, \code{datetime}, \code{timestamp} \cr
-   Temperature (°C) \tab \code{temperature}, \code{temp}, \code{temp_c} \cr
+   Temperature (degrees C) \tab \code{temperature}, \code{temp}, \code{temp_c} \cr
    Salinity (PSU) \tab \code{salinity}, \code{sal}, \code{salinity_psu} \cr
    Dissolved oxygen (mg/L) \tab \code{dissolved_oxygen}, \code{do}, \code{do_mgl}, \code{oxygen} \cr
    Depth (m) \tab \code{depth}, \code{depth_m} \cr
    Current velocity (m/s) \tab \code{current_velocity}, \code{velocity}, \code{current}, \code{u_mean} \cr
-   Shear stress (N/m²) \tab \code{shear_stress}, \code{tau}, \code{bed_shear}, \code{shear} \cr
-   Chlorophyll-a (µg/L) \tab \code{chlorophyll_a}, \code{chla}, \code{chl_a}, \code{chlorophyll} \cr
+   Shear stress (N/m^2) \tab \code{shear_stress}, \code{tau}, \code{bed_shear}, \code{shear} \cr
+   Chlorophyll-a (ugg/L) \tab \code{chlorophyll_a}, \code{chla}, \code{chl_a}, \code{chlorophyll} \cr
    Turbidity (NTU) \tab \code{turbidity}, \code{ntu}, \code{turb} \cr
    Slope (degrees) \tab \code{slope}, \code{slope_deg} \cr
    Roughness / rugosity \tab \code{roughness}, \code{rugosity} \cr
@@ -86,23 +92,26 @@ Column names are matched case-insensitively. Recognised synonyms:\tabular{ll}{
    Benthic communities \tab \code{benthic_communities}, \code{benthic}, \code{community} \cr
    Biotope \tab \code{biotope}, \code{biotopes}, \code{habitat} \cr
    Fishing intensity \tab \code{fishing_intensity}, \code{fishing}, \code{fishing_observed} \cr
+   pH \tab \code{ph}, \code{pH}, \code{seawater_ph}, \code{sea_ph}, \code{water_ph} \cr
+   Total alkalinity (umol/kg) \tab \code{alkalinity}, \code{total_alkalinity}, \code{ta}, \code{alk}, \code{alkalinity_umol_kg} \cr
+   Aragonite saturation \tab \code{omega_aragonite}, \code{omega_arag}, \code{aragonite_saturation} \cr
 }
 }
 
 \examples{
+sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
+table(result$suitability_class)
+
 \dontrun{
-# Using a CSV file
-result <- predict_oyster(
-  data    = "my_survey.csv",
-  species = "ostrea_edulis",
-  output_geotiff = "oyster_suitability.tif"
-)
-
-# Using a dataframe
-df <- read.csv("survey_data.csv")
-result <- predict_oyster(df, species = "ostrea_edulis", verbose = TRUE)
-
-# View top locations
-subset(result, suitability_class == "High")
+# Full pipeline from raw sensor files
+adcp_f  <- system.file("extdata", "example_bay_adcp.csv",      package = "oystermapR")
+bathy_f <- system.file("extdata", "example_bay_soundings.xyz", package = "oystermapR")
+ctd_f   <- system.file("extdata", "example_bay_ctd.csv",       package = "oystermapR")
+adcp   <- read_nortek_adcp(adcp_f,    verbose = FALSE)
+bathy  <- read_soundings_xyz(bathy_f, verbose = FALSE)
+ctd    <- read_generic_csv(ctd_f,     verbose = FALSE)
+survey <- merge_sensor_data(adcp = adcp, bathy = bathy, ctd = ctd)
+predict_oyster(survey, "ostrea_edulis", verbose = FALSE)
 }
 }

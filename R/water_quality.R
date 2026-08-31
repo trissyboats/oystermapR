@@ -34,12 +34,12 @@
 #' 0.80 multiplier; Class A is unpenalised.
 #'
 #' Classification can be supplied three ways (in priority order):
-#' 1. **`class_col`** — name of an existing column in `result` already
+#' 1. **`class_col`** -- name of an existing column in `result` already
 #'    containing classification values ("A", "B", "C", "Prohibited", or NA).
-#' 2. **`classified_areas`** — a dataframe with `lat`, `lon`, and
+#' 2. **`classified_areas`** -- a dataframe with `lat`, `lon`, and
 #'    `shellfish_class` columns, spatially matched to result rows within
 #'    `match_radius_deg` degrees.
-#' 3. **`fetch_live = TRUE`** — queries the FSA England/Wales open data API
+#' 3. **`fetch_live = TRUE`** -- queries the FSA England/Wales open data API
 #'    (requires internet). Requires `httr` package. Works only for sites
 #'    within the FSA/DAERA coverage area (England, Wales, Northern Ireland).
 #'
@@ -67,17 +67,16 @@
 #'
 #' @export
 #' @examples
-#' \dontrun{
-#' # Option 1: manual column already in data
+#' sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+#' result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
+#'
+#' # Option 1: manual class column already present in data
+#' result$water_class <- sample(c("A", "B", "C"), nrow(result), replace = TRUE)
 #' result <- add_shellfish_classification(result, class_col = "water_class")
 #'
-#' # Option 2: separate classified areas dataframe
-#' areas <- data.frame(lat = c(51.5), lon = c(-4.2), shellfish_class = c("B"))
-#' result <- add_shellfish_classification(result, classified_areas = areas)
-#'
-#' # Option 3: live fetch (internet required)
-#' result <- add_shellfish_classification(result, fetch_live = TRUE)
-#' }
+#' # Option 2: separate classified areas dataframe (spatially matched)
+#' areas <- data.frame(lat = c(50.3), lon = c(-4.2), shellfish_class = c("B"))
+#' result2 <- add_shellfish_classification(result, classified_areas = areas)
 add_shellfish_classification <- function(result,
                                           class_col        = NULL,
                                           classified_areas = NULL,

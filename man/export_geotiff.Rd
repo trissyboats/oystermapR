@@ -23,18 +23,18 @@ export_geotiff(
 \item{path}{Character. Output \code{.tif} file path.}
 
 \item{resolution}{Numeric. Raster cell size in decimal degrees. Default
-\code{0.0002} approx. 22 m — matches the typical 4-decimal-place survey grid. For
+\code{0.0002} approx. 22 m -- matches the typical 4-decimal-place survey grid. For
 large estuary surveys increase to \code{0.001} (100 m); for very detailed
 harbour surveys decrease to \code{0.0001} (~11 m).}
 
 \item{idw_power}{Numeric. IDW distance decay exponent (default \code{2}). Higher
 values make the surface honour nearby points more tightly and decay faster
-with distance — producing sharper gradients. Lower values (e.g. 1) give
+with distance -- producing sharper gradients. Lower values (e.g. 1) give
 broader, smoother spread.}
 
 \item{idw_max_dist}{Numeric or \code{NULL}. Maximum search radius in degrees for
 IDW interpolation. If \code{NULL} (default), the radius is automatically set to
-5× the median nearest-neighbour spacing between survey points — so the
+5x the median nearest-neighbour spacing between survey points -- so the
 heatmap fills gaps between transect lines but does not bleed onto land or
 beyond the survey boundary. Override with an explicit value (e.g. \code{0.003}
 approx. 330 m) if needed.}
@@ -47,7 +47,7 @@ beyond the survey boundary.}
 \item{contours}{Logical. If \code{TRUE} (default), automatically export contour
 lines as a GeoPackage alongside the GeoTIFF using \code{\link[=export_contours]{export_contours()}}.}
 
-\item{crs}{Character. CRS string (default \code{"EPSG:4326"} — WGS84). Use a
+\item{crs}{Character. CRS string (default \code{"EPSG:4326"} -- WGS84). Use a
 projected CRS (e.g. \code{"EPSG:32630"}) if your coordinates are in metres.}
 
 \item{overwrite}{Logical. Overwrite existing file (default \code{TRUE}).}
@@ -59,29 +59,26 @@ file alongside the \code{.tif} automatically.
 \description{
 Takes the scored point dataset from \code{\link[=predict_oyster]{predict_oyster()}} and produces a
 \strong{smooth, continuous raster heatmap} using Inverse Distance Weighting (IDW)
-interpolation — the same technique used by systems like Lowrance BioBase.
+interpolation -- the same technique used by systems like Lowrance BioBase.
 The result looks like a fluid heat surface over your survey area rather than
 isolated point squares.
 
-The output GeoTIFF contains three bands:
+The output GeoTIFF contains five bands:
 \enumerate{
-\item \strong{suitability} — IDW-interpolated score [0, 1]. Use this for the heatmap.
-\item \strong{excluded_mask} — 1 where a survey point was hard-excluded, 0 otherwise.
-\item \strong{n_observations} — how many survey points fell within each raster cell
+\item \strong{suitability} -- IDW-interpolated score [0, 1]. Use this for the heatmap.
+\item \strong{excluded_mask} -- 1 where a survey point was hard-excluded, 0 otherwise.
+\item \strong{n_observations} -- how many survey points fell within each raster cell
 (data density diagnostic).
+\item \strong{dist_to_nearest_m} -- distance in metres from each cell centre to the
+nearest survey point (use as a QGIS transparency mask to fade extrapolated areas).
+\item \strong{n_layers_scored} -- number of environmental variables that contributed to
+the suitability score at each survey point (data completeness overlay).
 }
 }
 \examples{
-\dontrun{
-result <- predict_oyster("survey.csv", "ostrea_edulis")
-
-# Standard export — smooth heatmap with auto radius and contours
-export_geotiff(result, "oyster_heatmap.tif")
-
-# Finer resolution for a small harbour survey
-export_geotiff(result, "oyster_heatmap.tif", resolution = 0.0001)
-
-# Override IDW radius explicitly (e.g. sparse transect data)
-export_geotiff(result, "oyster_heatmap.tif", idw_max_dist = 0.005)
-}
+sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
+out_tif <- file.path(tempdir(), "oyster_heatmap.tif")
+export_geotiff(result, out_tif)
+file.exists(out_tif)
 }

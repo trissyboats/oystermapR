@@ -30,7 +30,7 @@ Stores API credentials in R session options so live data fetching can
 authenticate with external services. Credentials are \strong{not} written to
 disk and are lost when the R session ends.
 
-All parameters are optional — only set credentials for the services you
+All parameters are optional - only set credentials for the services you
 intend to use. Functions that require a missing credential will warn
 and fall back to manual data rather than aborting.
 }

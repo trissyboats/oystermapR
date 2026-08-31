@@ -230,3 +230,34 @@ test_that("score_larval_connectivity class values are from valid set", {
   valid <- c("Highly connected", "Connected", "Low connectivity", "Isolated")
   expect_true(all(out$larval_connectivity_class %in% valid))
 })
+
+# ── PLD lookup for all 14 species (v1.3.0) ────────────────────────────────────
+
+test_that("score_larval_connectivity works for all 14 species", {
+  df <- .make_larval_df()
+  new_species <- c(
+    "crassostrea_virginica", "saccostrea_glomerata", "magallana_sikamea",
+    "magallana_ariakensis",  "crassostrea_hongkongensis", "crassostrea_nippona",
+    "crassostrea_belcheri",  "ostrea_chilensis", "ostrea_denselamellosa"
+  )
+  for (sp in new_species) {
+    out <- score_larval_connectivity(df, species = sp, verbose = FALSE)
+    expect_true("larval_connectivity_score" %in% names(out), info = sp)
+    expect_true(all(is.finite(out$larval_connectivity_score) | is.na(out$larval_connectivity_score)),
+                info = sp)
+  }
+})
+
+test_that("lecithotrophic species have shorter dispersal than planktotrophic", {
+  df <- .make_larval_df()
+  # Lecithotrophic (short PLD): O. lurida, O. chilensis, O. denselamellosa
+  # Planktotrophic (long PLD): M. gigas, C. virginica
+  out_lurida   <- score_larval_connectivity(df, species = "ostrea_lurida",         verbose = FALSE)
+  out_gigas    <- score_larval_connectivity(df, species = "magallana_gigas",       verbose = FALSE)
+  # Record the PLD used — check metadata columns if available
+  pld_lurida <- unique(out_lurida$larval_pld_days)
+  pld_gigas  <- unique(out_gigas$larval_pld_days)
+  if (!any(is.na(c(pld_lurida, pld_gigas)))) {
+    expect_true(mean(pld_lurida, na.rm = TRUE) < mean(pld_gigas, na.rm = TRUE))
+  }
+})

@@ -97,7 +97,13 @@ NULL
     roughness           = c("roughness", "rugosity"),
     slope               = c("slope", "slope_deg"),
     turbidity           = c("turbidity", "ntu", "turb"),
-    current_velocity    = c("current_velocity", "velocity", "current", "u_mean")
+    current_velocity    = c("current_velocity", "velocity", "current", "u_mean"),
+    ph                  = c("ph", "pH", "seawater_ph", "sea_ph", "water_ph"),
+    omega_aragonite     = c("omega_aragonite", "omega_arag", "aragonite_saturation",
+                            "aragonite", "omega_aragonite"),
+    dissolved_oxygen    = c("dissolved_oxygen", "do", "do_mgl", "oxygen",
+                            "dissolved_o2", "do_mg_l"),
+    salinity            = c("salinity", "sal", "salinity_psu", "psu", "sal_psu")
   )
 
   var_scores  <- numeric(0)
@@ -190,11 +196,12 @@ NULL
   completeness <- if (n_defined > 0) round(n_scored / n_defined, 3) else NA_real_
 
   if (length(var_scores) == 0) {
-    return(list(score            = NA_real_,
-                variable_scores  = var_scores,
-                variable_weights = var_weights,
-                limiting_factors = NA_character_,
-                data_completeness = completeness))
+    return(list(score             = NA_real_,
+                variable_scores   = var_scores,
+                variable_weights  = var_weights,
+                limiting_factors  = NA_character_,
+                data_completeness = completeness,
+                n_layers_scored   = 0L))
   }
 
   # Weights: rank 1 = highest weight (1/rank, normalised)
@@ -218,7 +225,8 @@ NULL
     variable_scores   = round(var_scores, 4),
     variable_weights  = round(norm_weights, 4),
     limiting_factors  = limiting,
-    data_completeness = completeness
+    data_completeness = completeness,
+    n_layers_scored   = as.integer(n_scored)
   )
 }
 
@@ -245,6 +253,11 @@ NULL
 #' @export
 score_locations <- function(df, tolerances, verbose = FALSE) {
 
+  # Guard: 'excluded' column may be absent if check_exclusions() was not called
+  if (!"excluded" %in% names(df)) df$excluded <- FALSE
+  df$excluded <- as.logical(df$excluded)
+  df$excluded[is.na(df$excluded)] <- FALSE
+
   results <- vector("list", nrow(df))
 
   for (i in seq_len(nrow(df))) {
@@ -252,7 +265,8 @@ score_locations <- function(df, tolerances, verbose = FALSE) {
       results[[i]] <- list(score = 0, variable_scores = numeric(0),
                            variable_weights = numeric(0),
                            limiting_factors = NA_character_,
-                           data_completeness = NA_real_)
+                           data_completeness = NA_real_,
+                           n_layers_scored = 0L)
     } else {
       results[[i]] <- .score_row(as.list(df[i, ]), tolerances)
     }
@@ -272,6 +286,11 @@ score_locations <- function(df, tolerances, verbose = FALSE) {
   df$data_completeness <- vapply(results, function(r) {
     r$data_completeness %||% NA_real_
   }, numeric(1))
+
+  # n_layers_scored: integer count of variables that contributed to the score
+  df$n_layers_scored <- vapply(results, function(r) {
+    r$n_layers_scored %||% NA_integer_
+  }, integer(1))
 
   # Limiting factors column
   df$limiting_factors <- vapply(results, function(r) {
@@ -347,15 +366,13 @@ score_locations <- function(df, tolerances, verbose = FALSE) {
 #'
 #' @export
 #' @examples
-#' \dontrun{
-#' result <- predict_oyster(survey, "ostrea_edulis")
+#' sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+#' result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
 #' tol    <- get_species_tolerances("ostrea_edulis")
 #' result <- add_suitability_ci(result, tol,
-#'                              uncertainty = c(temperature = 0.3,
-#'                                              salinity    = 0.5))
+#'   uncertainty = c(temperature = 0.3, salinity = 0.5))
 #' # Columns suit_ci_lower, suit_ci_upper, suit_ci_width now present
-#' generate_report(result, "report.html")   # map rings scale with CI width
-#' }
+#' head(result[, c("lat", "lon", "suitability", "suit_ci_lower", "suit_ci_upper")])
 add_suitability_ci <- function(result,
                                 tolerances,
                                 n_boot      = 200L,
@@ -424,4 +441,128 @@ add_suitability_ci <- function(result,
   }
 
   result
+}
+
+
+#' Summarise variable-level impact on suitability scores
+#'
+#' @description
+#' Returns a ranked summary table showing, for each environmental variable
+#' that contributed to the suitability score, how important it was (weight),
+#' how well it scored on average, and what its net contribution to the final
+#' score was. This is the primary diagnostic for understanding which data
+#' layers are driving or limiting the suitability output.
+#'
+#' **Columns returned:**
+#' \describe{
+#'   \item{`variable`}{Variable name (matches `score_<variable>` columns in the result).}
+#'   \item{`rank`}{Species-defined importance rank (1 = highest priority).}
+#'   \item{`norm_weight_pct`}{Normalised weight as a percentage of the total
+#'     weight across all variables present in the data. Higher = more influence.}
+#'   \item{`mean_score`}{Mean per-variable score across all non-excluded points
+#'     that had data for this variable. Range 0-1.}
+#'   \item{`mean_contribution`}{`mean_score * norm_weight_pct / 100`. The
+#'     average weighted contribution to the final suitability value. Sum of
+#'     `mean_contribution` across all variables = approximate mean suitability.}
+#'   \item{`n_points`}{Number of non-excluded points with data for this variable.}
+#'   \item{`pct_coverage`}{Percentage of non-excluded points with data for this variable.}
+#' }
+#'
+#' @param result A dataframe returned by [predict_oyster()].
+#' @param species Character string identifying the target oyster species.
+#'   Same format as the `species` argument to [predict_oyster()].
+#' @param sort_by Character. Column to sort the output by. One of
+#'   `"mean_contribution"` (default), `"rank"`, `"mean_score"`,
+#'   `"norm_weight_pct"`, or `"n_points"`.
+#' @param exclude_zero Logical. If `TRUE` (default), exclude variables that had
+#'   zero coverage (no points with data). Set to `FALSE` to see all
+#'   variables defined in the species tolerance spec.
+#'
+#' @return A dataframe ordered by `sort_by` (descending). Print it directly
+#'   or pass to `knitr::kable()` for a formatted table.
+#'
+#' @export
+#' @examples
+#' sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+#' result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
+#' variable_impact(result, "ostrea_edulis")
+#'
+#' # Sort by lowest-scoring variables (potential site limiters)
+#' variable_impact(result, "ostrea_edulis", sort_by = "mean_score")
+variable_impact <- function(result,
+                            species,
+                            sort_by      = "mean_contribution",
+                            exclude_zero = TRUE) {
+
+  valid_sorts <- c("mean_contribution", "rank", "mean_score",
+                   "norm_weight_pct", "n_points")
+  if (!sort_by %in% valid_sorts) {
+    cli::cli_abort(
+      "{.arg sort_by} must be one of: {.val {valid_sorts}}."
+    )
+  }
+
+  # ---- Get tolerances ---------------------------------------------------------
+  tol     <- get_species_tolerances(species)
+  scored  <- tol$scored
+  if (is.null(scored) || length(scored) == 0) {
+    cli::cli_abort("No scored variables found for species {.val {species}}.")
+  }
+
+  # ---- Extract score columns from result --------------------------------------
+  non_excl <- result[!result$excluded, ]
+  n_total  <- nrow(non_excl)
+
+  score_cols <- grep("^score_", names(result), value = TRUE)
+  var_names  <- sub("^score_", "", score_cols)
+
+  # ---- Build impact table -----------------------------------------------------
+  rows <- lapply(var_names, function(vn) {
+    col_nm   <- paste0("score_", vn)
+    scores   <- non_excl[[col_nm]]
+    n_pts    <- sum(!is.na(scores))
+    mn_score <- if (n_pts > 0) round(mean(scores, na.rm = TRUE), 4) else NA_real_
+
+    # Rank from tolerance spec (fall back to 6 if not found)
+    rank <- if (vn %in% names(scored)) scored[[vn]]$rank else 6L
+
+    data.frame(
+      variable   = vn,
+      rank       = rank,
+      mean_score = mn_score,
+      n_points   = n_pts,
+      stringsAsFactors = FALSE
+    )
+  })
+
+  impact_df <- do.call(rbind, rows)
+
+  # ---- Compute normalised weights (same formula as .score_row) ----------------
+  # Use mean n_points to decide which variables were "present"
+  present <- impact_df$n_points > 0
+  if (exclude_zero) impact_df <- impact_df[present, ]
+
+  raw_w    <- 1 / impact_df$rank
+  norm_w   <- raw_w / sum(raw_w, na.rm = TRUE)
+
+  impact_df$norm_weight_pct  <- round(norm_w * 100, 2)
+  impact_df$mean_contribution <- round(impact_df$mean_score *
+                                         impact_df$norm_weight_pct / 100, 4)
+  impact_df$pct_coverage      <- round(impact_df$n_points / n_total * 100, 1)
+
+  # ---- Sort -------------------------------------------------------------------
+  impact_df <- impact_df[order(-impact_df[[sort_by]]), ]
+  rownames(impact_df) <- NULL
+
+  # ---- Print summary ----------------------------------------------------------
+  sp_label <- tol$common_name %||% species
+  cli::cli_h2("Variable impact: {sp_label}")
+  cli::cli_inform(c(
+    "i" = "Non-excluded points: {n_total}",
+    "i" = "Variables with data: {sum(impact_df$n_points > 0)}",
+    "i" = "Sorted by: {sort_by}"
+  ))
+
+  impact_df[, c("variable", "rank", "norm_weight_pct", "mean_score",
+                "mean_contribution", "n_points", "pct_coverage")]
 }

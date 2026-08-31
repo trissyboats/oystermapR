@@ -6,7 +6,7 @@
 ^.*\.gpkg$
 ^.*\.pdf$
 ^.*\.docx$
-^.*\.html$
+^[^/]*\.html$
 ^.*\.py$
 ^~\$.*$
 ^\.DS_Store$
@@ -15,3 +15,16 @@
 ^oystermapR\.Rcheck$
 ^test_report\.R$
 ^.*\.zip$
+^mapRtestbed\.R$
+^ostrea_edulis_result\.csv$
+^sample_galway_bay_realistic\.csv$
+^test_oyster_obs\.csv$
+^.*\.gpkg-shm$
+^.*\.gpkg-wal$
+^LICENSE$
+^test_live_data\.R$
+^doc$
+^Meta$
+^cran_check\.sh$
+^cran-comments\.md$
+^CRAN-SUBMISSION$

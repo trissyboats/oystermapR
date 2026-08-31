@@ -42,7 +42,7 @@ scoring functions. Each source can be fetched independently or all at once.
 
 This function requires internet access and registered API credentials where
 applicable (see \code{\link[=oystermapR_live_config]{oystermapR_live_config()}}). If a source fails, it is
-silently skipped and not included in the output — the function never aborts
+silently skipped and not included in the output - the function never aborts
 due to a single failed source.
 }
 \examples{

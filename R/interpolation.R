@@ -28,7 +28,7 @@
 #' - **Ordinary kriging** is used when >= 50 non-NA observations are available
 #'   for a variable, the `gstat` and `sp` packages are installed, and the
 #'   variogram can be fitted without error. Kriging is the best linear
-#'   unbiased estimator (BLUE) under the assumption of spatial stationarity —
+#'   unbiased estimator (BLUE) under the assumption of spatial stationarity --
 #'   it minimises mean squared prediction error and returns a kriging variance
 #'   for each cell.
 #' - **IDW** (Inverse Distance Weighting, p = 2) is used as a fallback when
@@ -37,7 +37,7 @@
 #'   bull's-eye artefacts around isolated observations.
 #'
 #' Kriging variograms are fitted automatically using `gstat::fit.variogram()`
-#' with a Matérn model (default) — the most flexible and statistically
+#' with a Matern model (default) -- the most flexible and statistically
 #' justified model for environmental data. If automatic fitting fails, a
 #' spherical model is tried; if that also fails, IDW is used.
 #'
@@ -46,7 +46,7 @@
 #'   numeric columns except `lat` and `lon`.
 #' @param resolution_m Numeric. Grid cell size in metres (default 100 m).
 #'   Coarsen for sparse surveys (> 500 m) or refine for dense ADCP grids (50 m).
-#' @param method Character. `"auto"` (default — kriging if possible, IDW
+#' @param method Character. `"auto"` (default -- kriging if possible, IDW
 #'   fallback), `"kriging"` (force kriging; error if insufficient data), or
 #'   `"idw"` (always use IDW).
 #' @param kriging_min_n Integer. Minimum observations required to attempt
@@ -63,19 +63,17 @@
 #'
 #' @export
 #' @examples
-#' \dontrun{
-#' # Auto method — kriging for dense variables, IDW for sparse
-#' grid <- interpolate_survey(survey, resolution_m = 100)
-#' result <- predict_oyster(grid, "ostrea_edulis")
+#' sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+#' survey <- read.csv(sample_csv)
 #'
 #' # Force IDW (fast, no gstat needed)
 #' grid <- interpolate_survey(survey, resolution_m = 200, method = "idw")
+#' head(grid[, c("lat", "lon", "temperature")])
 #'
-#' # Inspect which method was used per variable
-#' unique(grid$interp_method_temperature)
-#'
-#' # Kriging variance — high values = uncertain interpolation
-#' hist(grid$krige_var_temperature)
+#' \dontrun{
+#' # Kriging (auto-selects where data are dense enough)
+#' grid_k <- interpolate_survey(survey, resolution_m = 100)
+#' unique(grid_k$interp_method_temperature)
 #' }
 interpolate_survey <- function(survey,
                                 vars           = NULL,
@@ -199,8 +197,9 @@ interpolate_survey <- function(survey,
     }, logical(1)))
     cli::cli_inform(c(
       "\u2713" = paste0("Done. Grid: ", nrow(grid), " cells | ",
-                        n_krig, " variable{?s} kriged, ",
-                        length(vars) - n_krig, " IDW")
+                        n_krig, " ",
+                        if (n_krig == 1L) "variable" else "variables",
+                        " kriged, ", length(vars) - n_krig, " IDW")
     ))
   }
 

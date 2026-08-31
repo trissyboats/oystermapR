@@ -24,7 +24,7 @@ optionally \code{depth_m} and \code{substrate} columns.}
 \item{match_radius_m}{Numeric. Radius in metres within which predator
 records are aggregated per survey cell (default 1000 m).}
 
-\item{species}{Character. Target oyster species — affects which predators
+\item{species}{Character. Target oyster species -- affects which predators
 are most relevant (\code{"ostrea_edulis"} or \code{"magallana_gigas"}).}
 
 \item{verbose}{Logical. Default TRUE.}
@@ -41,43 +41,42 @@ are most relevant (\code{"ostrea_edulis"} or \code{"magallana_gigas"}).}
 \description{
 Produces a predation risk index (0 = negligible, 1 = severe) based on
 predator occurrence data, substrate rugosity, and depth. The output is
-intended as an \strong{overlay} on ecological suitability — high predation risk
+intended as an \strong{overlay} on ecological suitability -- high predation risk
 does not reduce the habitat suitability score directly but is flagged in
 a separate column for management planning (e.g. cage exclusion, deep
 subtidal placement to avoid intertidal drills).
 
 \strong{Input options (in priority order):}
 \enumerate{
-\item \code{predator_data} — manually supplied dataframe with predator records
+\item \code{predator_data} -- manually supplied dataframe with predator records
 (see Details).
-\item \code{fetch_live = TRUE} — queries EMODnet Biology for \emph{Asterias rubens} and
+\item \code{fetch_live = TRUE} -- queries EMODnet Biology for \emph{Asterias rubens} and
 \emph{Carcinus maenas} occurrence records within the survey extent. Requires
 internet access and the \code{httr} package.
-\item Neither — returns a depth-proxy-only risk score with a warning.
+\item Neither -- returns a depth-proxy-only risk score with a warning.
 }
 }
 \section{predator_data format}{
 
 A dataframe with columns:
 \itemize{
-\item \code{lat}, \code{lon} — coordinates
-\item \code{species} — species name or AphiaID (character)
-\item \code{density} (optional) — relative abundance / density index; if absent,
+\item \code{lat}, \code{lon} -- coordinates
+\item \code{species} -- species name or AphiaID (character)
+\item \code{density} (optional) -- relative abundance / density index; if absent,
 each record is treated as presence-only (density = 1)
-\item \code{date} (optional) — survey date (used to filter to relevant season)
+\item \code{date} (optional) -- survey date (used to filter to relevant season)
 }
 }
 
 \examples{
-\dontrun{
-# Manual data
-pred <- data.frame(lat=51.5, lon=-4.1, species="Asterias rubens", density=3)
-result <- score_predation_risk(result, predator_data=pred, species="ostrea_edulis")
+sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
 
-# Live EMODnet fetch
-result <- score_predation_risk(result, fetch_live=TRUE)
-
-# Depth-proxy only (no predator data)
+# Depth-proxy only (no external data needed)
 result <- score_predation_risk(result)
-}
+table(result$predation_risk_class)
+
+# With manual predator observations
+pred <- data.frame(lat=50.25, lon=-4.12, species="Asterias rubens", density=3)
+result <- score_predation_risk(result, predator_data=pred, species="ostrea_edulis")
 }

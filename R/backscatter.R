@@ -46,7 +46,7 @@
 #' a fluorometer was not deployed and the ADCP backscatter intensity is
 #' available.
 #'
-#' The conversion is: `Chl_a (µg/L) = 10 ^ (a · Sv + b)`
+#' The conversion is: `Chl_a (ugg/L) = 10 ^ (a * Sv + b)`
 #'
 #' Default `a` and `b` constants are derived from Deines (1999) for three
 #' common ADCP frequencies (300, 600, 1200 kHz). For best results, calibrate
@@ -56,7 +56,7 @@
 #' @param df Dataframe containing a backscatter column and optional temperature
 #'   and depth columns.
 #' @param backscatter_col Character. Name of the column containing volume
-#'   backscatter strength values (Sv in dB re 1 m^-¹). For Nortek Signature
+#'   backscatter strength values (Sv in dB re 1 \eqn{m^{-1}}). For Nortek Signature
 #'   outputs, this is typically the mean amplitude across clean bins, available
 #'   as `amp_mean_dB` after [read_nortek_adcp()].
 #' @param frequency_khz Numeric. ADCP operating frequency in kHz. Used to
@@ -68,9 +68,9 @@
 #'   frequency-based defaults. Derive from concurrent water samples:
 #'   fit `log10(observed_chl) ~ backscatter` and extract intercept (`b`) and
 #'   slope (`a`).
-#' @param min_chl Numeric. Floor for estimated chlorophyll-a in µg/L
+#' @param min_chl Numeric. Floor for estimated chlorophyll-a in ugg/L
 #'   (default `0.05`). Prevents physically implausible negative estimates.
-#' @param max_chl Numeric. Ceiling for estimated chlorophyll-a in µg/L
+#' @param max_chl Numeric. Ceiling for estimated chlorophyll-a in ugg/L
 #'   (default `50`). Values above this are likely turbidity artefacts (non-algal
 #'   particles dominating backscatter).
 #' @param keep_raw Logical. If `TRUE`, preserves the input backscatter column
@@ -78,11 +78,11 @@
 #' @param verbose Logical. Print conversion summary and warnings (default `TRUE`).
 #'
 #' @return The input dataframe with an additional `chlorophyll_a` column
-#'   (µg/L). If a `chlorophyll_a` column already exists, a warning is issued
+#'   (ugg/L). If a `chlorophyll_a` column already exists, a warning is issued
 #'   and the existing column is overwritten.
 #'
 #' @section Improving accuracy with water samples:
-#' Collect 5–15 grab/Niskin water samples distributed across your survey area
+#' Collect 5--15 grab/Niskin water samples distributed across your survey area
 #' and depth range, then:
 #' ```r
 #' # Fit calibration from samples
@@ -96,17 +96,13 @@
 #'
 #' @export
 #' @examples
-#' \dontrun{
-#' # Default calibration (300 kHz Nortek Signature)
-#' adcp <- read_nortek_adcp("survey.csv")
-#' adcp <- estimate_chlorophyll_from_backscatter(
-#'           adcp, backscatter_col = "amp_mean_dB",
-#'           frequency_khz = 300)
-#'
-#' # Custom calibration from water samples
-#' adcp <- estimate_chlorophyll_from_backscatter(
-#'           adcp, "amp_mean_dB", frequency_khz = 300,
-#'           calibration = c(a = 0.041, b = -0.52))
+#' adcp_f <- system.file("extdata", "example_bay_adcp.csv", package = "oystermapR")
+#' adcp   <- read_nortek_adcp(adcp_f, verbose = FALSE)
+#' # estimate_chlorophyll_from_backscatter requires an amp_mean_dB column
+#' # produced by read_nortek_adcp when the ADCP data contains amplitude bins
+#' if ("amp_mean_dB" %in% names(adcp)) {
+#'   adcp <- estimate_chlorophyll_from_backscatter(adcp, "amp_mean_dB",
+#'     frequency_khz = 300)
 #' }
 estimate_chlorophyll_from_backscatter <- function(df,
                                                    backscatter_col,
@@ -214,10 +210,10 @@ estimate_chlorophyll_from_backscatter <- function(df,
 #' **Classification thresholds (default, adjustable):**
 #' | Class        | Hardness index | Typical substrate              |
 #' |--------------|---------------|-------------------------------|
-#' | Hard         | 0.8 – 1.0     | Rock, cobble, shell hash       |
-#' | Mixed        | 0.5 – 0.8     | Gravel/sand mix, maerl beds    |
-#' | Soft         | 0.2 – 0.5     | Sand, sandy mud                |
-#' | Very Soft    | 0.0 – 0.2     | Mud, fine silt                 |
+#' | Hard         | 0.8 -- 1.0     | Rock, cobble, shell hash       |
+#' | Mixed        | 0.5 -- 0.8     | Gravel/sand mix, maerl beds    |
+#' | Soft         | 0.2 -- 0.5     | Sand, sandy mud                |
+#' | Very Soft    | 0.0 -- 0.2     | Mud, fine silt                 |
 #'
 #' The hardness index is a min-max normalisation of the mean near-seabed
 #' backscatter across the bottom `n_bottom_bins` cells. If the column
@@ -250,17 +246,15 @@ estimate_chlorophyll_from_backscatter <- function(df,
 #'
 #' @export
 #' @examples
-#' \dontrun{
-#' # ADCP data with near-seabed backscatter column
-#' survey <- classify_substrate_from_backscatter(survey,
-#'             backscatter_col = "bottom_backscatter_db",
-#'             is_sv = TRUE)
-#'
-#' # The substrate_hardness_index column feeds directly into predict_oyster()
-#' # as the 'substrate_hardness' variable
-#' names(survey)[names(survey) == "substrate_hardness_index"] <- "substrate_hardness"
-#' result <- predict_oyster(survey, "ostrea_edulis")
-#' }
+#' # Minimal dataframe with a mean-volume backscatter column (dB re 1 m-1)
+#' df <- data.frame(
+#'   lat           = c(51.5, 51.6, 51.7),
+#'   lon           = c(-3.2, -3.2, -3.1),
+#'   sv_backscatter = c(-55.0, -68.0, -75.0)
+#' )
+#' df <- classify_substrate_from_backscatter(df, backscatter_col = "sv_backscatter",
+#'                                            is_sv = TRUE, verbose = FALSE)
+#' df[, c("substrate_hardness_index", "substrate_hardness_class")]
 classify_substrate_from_backscatter <- function(df,
                                                  backscatter_col,
                                                  is_sv        = FALSE,

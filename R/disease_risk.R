@@ -63,20 +63,20 @@
 #' Assesses the environmental risk of two key bivalve pathogens at each survey
 #' location:
 #'
-#' - **Bonamia ostreae** (*Ostrea edulis* only) — an intracellular haplosporidian
+#' - **Bonamia ostreae** (*Ostrea edulis* only) -- an intracellular haplosporidian
 #'   parasite that is the primary constraint on flat oyster restoration in northern
-#'   Europe. Risk is temperature-driven: transmission peaks 15-20°C and is
-#'   negligible below 8°C. The function also accepts a `known_sites` dataframe of
+#'   Europe. Risk is temperature-driven: transmission peaks 15-20degrees C and is
+#'   negligible below 8degrees C. The function also accepts a `known_sites` dataframe of
 #'   confirmed infected locations to apply a proximity multiplier.
 #'
-#' - **OsHV-1 microvariant** (*Magallana gigas*) — a herpesvirus causing Pacific
+#' - **OsHV-1 microvariant** (*Magallana gigas*) -- a herpesvirus causing Pacific
 #'   Oyster Mortality Syndrome (POMS). Mortality events occur when seawater
-#'   exceeds 16°C for sustained periods. High turbidity amplifies risk by
+#'   exceeds 16degrees C for sustained periods. High turbidity amplifies risk by
 #'   increasing larval stress.
 #'
 #' Risk scores are returned on a 0-1 scale (0 = negligible, 1 = highest
 #' environmental risk) and classified as Low / Moderate / High / Critical.
-#' They are deliberately kept separate from the suitability score — a High
+#' They are deliberately kept separate from the suitability score -- a High
 #' suitability site with High disease risk is a meaningful regulatory red flag.
 #'
 #' @param result Dataframe from [predict_oyster()] with `lat`, `lon`, and
@@ -102,21 +102,16 @@
 #'
 #' @export
 #' @examples
-#' \dontrun{
-#' result <- predict_oyster(survey, "ostrea_edulis")
+#' sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+#' result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
 #'
 #' # Basic risk scoring (temperature-driven only)
 #' result <- score_disease_risk(result, "ostrea_edulis")
 #'
 #' # With known Bonamia-positive site locations
-#' infected <- data.frame(lat = c(55.8, 56.1), lon = c(-5.2, -5.4))
-#' result <- score_disease_risk(result, "ostrea_edulis",
-#'                               known_sites = infected)
-#'
-#' # Sites with high ecological suitability but also high disease risk
-#' flagged <- subset(result,
-#'   suitability_class == "High" & disease_risk_class %in% c("High","Critical"))
-#' }
+#' infected <- data.frame(lat = c(50.3, 50.4), lon = c(-4.2, -4.1))
+#' result <- score_disease_risk(result, "ostrea_edulis", known_sites = infected)
+#' table(result$disease_risk_class)
 score_disease_risk <- function(result,
                                 species       = "ostrea_edulis",
                                 known_sites   = NULL,
@@ -197,8 +192,9 @@ score_disease_risk <- function(result,
     )
     if (n_flagged > 0)
       cli::cli_warn(c(
-        "!" = paste0(n_flagged, " location{?s} combine High/Moderate suitability ",
-                     "with High/Critical disease risk."),
+        "!" = paste0(n_flagged, " ",
+                     if (n_flagged == 1L) "location" else "locations",
+                     " combine High/Moderate suitability with High/Critical disease risk."),
         "i" = "Filter with: subset(result, suitability_class %in% c('High','Moderate') & disease_risk_class %in% c('High','Critical'))"
       ))
   }

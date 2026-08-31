@@ -67,11 +67,11 @@
 #' @param result Dataframe from [predict_oyster()]. Must contain `lat`, `lon`.
 #'   Key optional columns (column names configurable via arguments):
 #'   - `current_ms`: depth-averaged current speed (m/s)
-#'   - `wave_hs_m`: significant wave height (m) — from `score_wave_exposure()`
+#'   - `wave_hs_m`: significant wave height (m) -- from `score_wave_exposure()`
 #'     or direct measurement
-#'   - `depth_m`: water depth (m) — needed for wave orbital velocity
-#'   - `substrate`: substrate classification string — used to estimate d50
-#'   - `d50_mm`: median grain diameter (mm) — overrides substrate-derived d50
+#'   - `depth_m`: water depth (m) -- needed for wave orbital velocity
+#'   - `substrate`: substrate classification string -- used to estimate d50
+#'   - `d50_mm`: median grain diameter (mm) -- overrides substrate-derived d50
 #'
 #' @param current_col Character. Column name for depth-averaged current speed
 #'   (m/s). Default `"current_ms"`.
@@ -92,25 +92,20 @@
 #'   - `shields_parameter`: Shields number theta at each site
 #'   - `shields_critical`: critical Shields number theta_cr for the substrate d50
 #'   - `mobility_ratio`: theta / theta_cr (> 1.0 = mobile; < 1.0 = stable)
-#'   - `d50_mm_estimated`: grain size used (mm) — measured or substrate-derived
+#'   - `d50_mm_estimated`: grain size used (mm) -- measured or substrate-derived
 #'   - `sediment_stability_score` \[0,1\]: 1 = fully stable, 0 = highly mobile
 #'   - `sediment_mobility_class`: "Stable" / "Marginally stable" / "Mobile" / "Highly mobile"
 #'   - `sediment_stability_note`: management flag
 #'
 #' @export
 #' @examples
-#' \dontrun{
-#' # With current velocity and substrate type columns
-#' result <- score_sediment_stability(result, current_col="current_ms", substrate_col="substrate")
+#' sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+#' result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
 #'
-#' # After score_wave_exposure() — wave_hs_m column already present
-#' result <- score_wave_exposure(result, fetch_km=15)
-#' result <- score_sediment_stability(result)
-#'
-#' # With measured grain size
-#' result$d50_mm <- c(0.25, 2.5, 15.0, 0.08)
-#' result <- score_sediment_stability(result)
-#' }
+#' # Using current_velocity and sediment_type columns from the survey
+#' result <- score_sediment_stability(result,
+#'   current_col = "current_velocity", substrate_col = "sediment_type")
+#' table(result$sediment_stability_class)
 score_sediment_stability <- function(result,
                                       current_col   = "current_ms",
                                       wave_hs_col   = "wave_hs_m",

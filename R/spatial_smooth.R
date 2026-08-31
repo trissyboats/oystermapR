@@ -34,16 +34,10 @@
 #'
 #' @export
 #' @examples
-#' \dontrun{
-#' result <- predict_oyster(survey, "ostrea_edulis")
-#'
-#' # Smooth with 300 m bandwidth (good for dense ADCP surveys)
+#' sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+#' result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
 #' result_smooth <- smooth_suitability(result, bandwidth_m = 300)
-#'
-#' # Compare raw vs smoothed
-#' plot(result$suitability_raw, result$suitability,
-#'      xlab = "Raw", ylab = "Smoothed", pch = 20)
-#' }
+#' head(result_smooth[, c("lat", "lon", "suitability")])
 smooth_suitability <- function(result,
                                 bandwidth_m    = 500,
                                 max_radius_m   = NULL,

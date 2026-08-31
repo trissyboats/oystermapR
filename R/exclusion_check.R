@@ -27,8 +27,8 @@
 #' | Season                | `season` (auto-added by [add_season_column()]) |
 #'
 #' @return The input dataframe with two additional columns:
-#'   - `excluded`: logical — `TRUE` if the location fails any exclusion criterion.
-#'   - `exclusion_reason`: character — semicolon-separated list of failed criteria,
+#'   - `excluded`: logical -- `TRUE` if the location fails any exclusion criterion.
+#'   - `exclusion_reason`: character -- semicolon-separated list of failed criteria,
 #'     or `NA` if not excluded.
 #'
 #' @export

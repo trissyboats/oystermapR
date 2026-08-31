@@ -26,7 +26,7 @@ score_anthropogenic_disturbance(
 \item{fetch_live}{Logical. Query ICES VMS GeoServer (default FALSE).}
 
 \item{match_radius_m}{Numeric. Spatial matching radius in metres (default
-5000 m, consistent with ICES c-square ~0.05° resolution).}
+5000 m, consistent with ICES c-square ~0.05degrees resolution).}
 
 \item{verbose}{Logical. Default TRUE.}
 }
@@ -36,7 +36,7 @@ score_anthropogenic_disturbance(
 \item \code{disturbance_sar}: swept-area ratio at or near each site (NA if no data)
 \item \code{disturbance_score} [0,1]: composite anthropogenic disturbance index
 \item \code{disturbance_class}: "Negligible" / "Low" / "Moderate" / "High" / "Active"
-\item \code{disturbance_gear_gate}: logical — TRUE if SAR exceeds gear deployment
+\item \code{disturbance_gear_gate}: logical -- TRUE if SAR exceeds gear deployment
 threshold (used by \code{assess_gear_feasibility()})
 \item \code{disturbance_note}: management flag
 }
@@ -49,24 +49,24 @@ live from the ICES VMS data portal.
 
 This output is primarily relevant to the gear feasibility and economic
 viability modules. Very high trawling intensity (SAR > 0.5/yr) constitutes
-a hard gate for bottom culture and restoration reef deployment — physical
+a hard gate for bottom culture and restoration reef deployment -- physical
 gear deployment is not viable on actively trawled ground regardless of
 ecological suitability.
 
 \strong{Input options:}
 \enumerate{
-\item \code{trawling_data} — ICES VMS SAR data, manually downloaded as CSV/dataframe.
-\item \code{fetch_live = TRUE} — queries ICES VMS GeoServer endpoint.
-\item Neither — returns zero disturbance with a warning.
+\item \code{trawling_data} -- ICES VMS SAR data, manually downloaded as CSV/dataframe.
+\item \code{fetch_live = TRUE} -- queries ICES VMS GeoServer endpoint.
+\item Neither -- returns zero disturbance with a warning.
 }
 }
 \section{trawling_data format}{
 
 A dataframe with columns:
 \itemize{
-\item \code{lat}, \code{lon} — centroid of c-square or fishing location
-\item \code{sar} — swept-area ratio (numeric; dimensionless ratio per year)
-\item \code{gear_type} (optional) — "otter", "beam", "dredge", "seine" etc.
+\item \code{lat}, \code{lon} -- centroid of c-square or fishing location
+\item \code{sar} -- swept-area ratio (numeric; dimensionless ratio per year)
+\item \code{gear_type} (optional) -- "otter", "beam", "dredge", "seine" etc.
 Dredge gear has higher impact per SAR unit.
 }
 }
@@ -82,12 +82,16 @@ aggregate extraction areas (all sites within the polygon receive score 1.0).
 }
 
 \examples{
-\dontrun{
-# Manual ICES VMS data (downloaded from ICES data portal)
-vms <- read.csv("ices_vms_sar_2022.csv")  # columns: lat, lon, sar, gear_type
-result <- score_anthropogenic_disturbance(result, trawling_data = vms)
+sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
 
-# Live ICES VMS fetch
-result <- score_anthropogenic_disturbance(result, fetch_live = TRUE)
+# Score using depth-proxy only (no external data needed)
+result <- score_anthropogenic_disturbance(result)
+table(result$anthropogenic_class)
+
+\dontrun{
+# With manual ICES VMS trawling intensity data
+vms <- read.csv("ices_vms_sar_2022.csv")
+result <- score_anthropogenic_disturbance(result, trawling_data = vms)
 }
 }

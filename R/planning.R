@@ -90,7 +90,7 @@
 #'   (default `"substrate_hardness_class"`). Can be the output of
 #'   [classify_substrate_from_backscatter()].
 #' @param wave_col Character or NULL. Column for significant wave height Hs
-#'   in metres (default NULL — wave check skipped if absent).
+#'   in metres (default NULL -- wave check skipped if absent).
 #' @param verbose Logical. Print feasibility summary (default TRUE).
 #'
 #' @return Input dataframe with added columns per gear type:
@@ -100,17 +100,12 @@
 #'
 #' @export
 #' @examples
-#' \dontrun{
-#' result <- predict_oyster(survey, "ostrea_edulis")
+#' sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+#' result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
 #' result <- assess_gear_feasibility(result)
-#'
-#' # Sites where longline is feasible AND suitability is High
-#' longline_sites <- subset(result,
-#'   gear_longline_feasible & suitability_class == "High")
-#'
 #' # Restoration reef sites (no farming licence needed)
 #' reef_sites <- subset(result, gear_restoration_reef_feasible)
-#' }
+#' nrow(reef_sites)
 assess_gear_feasibility <- function(result,
                                      gear_types   = names(.gear_specs),
                                      depth_col    = "depth",
@@ -205,7 +200,7 @@ assess_gear_feasibility <- function(result,
     cli::cli_h2("Gear Feasibility Assessment")
     for (gt in gear_types) {
       n_feas <- sum(result[[paste0("gear_", gt, "_feasible")]], na.rm = TRUE)
-      cli::cli_inform("  {.gear_specs[[gt]]$name}: {n_feas} / {n} locations feasible")
+      cli::cli_inform("  {(.gear_specs[[gt]]$name)}: {n_feas} / {n} locations feasible")
     }
     cli::cli_inform(c(
       "i" = paste0("Mean gear options per location: ",
@@ -222,16 +217,16 @@ assess_gear_feasibility <- function(result,
 #' @description
 #' Combines ecological suitability, gear feasibility, site accessibility, and
 #' patch size into a composite **economic viability index** \[0-1\]. This is a
-#' heuristic scoring — not a financial model — but it ranks sites consistently
+#' heuristic scoring -- not a financial model -- but it ranks sites consistently
 #' and can be used to shortlist candidates for detailed business case
 #' development.
 #'
 #' The index weighs four components:
-#' 1. **Ecological suitability** (40%) — from [predict_oyster()]
-#' 2. **Gear feasibility** (25%) — best gear score from [assess_gear_feasibility()]
-#' 3. **Accessible patch area** (20%) — log-scaled area of connected suitable
+#' 1. **Ecological suitability** (40%) -- from [predict_oyster()]
+#' 2. **Gear feasibility** (25%) -- best gear score from [assess_gear_feasibility()]
+#' 3. **Accessible patch area** (20%) -- log-scaled area of connected suitable
 #'    habitat (from [analyse_connectivity()] if available)
-#' 4. **Access score** (15%) — distance to nearest harbour/port (if
+#' 4. **Access score** (15%) -- distance to nearest harbour/port (if
 #'    `harbours` table supplied) or flat 0.5 if unknown
 #'
 #' @param result Dataframe from [assess_gear_feasibility()] (which itself
@@ -249,23 +244,18 @@ assess_gear_feasibility <- function(result,
 #'
 #' @export
 #' @examples
-#' \dontrun{
-#' result <- predict_oyster(survey, "ostrea_edulis")
+#' sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+#' result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
 #' result <- assess_gear_feasibility(result)
-#' result <- analyse_connectivity(result)
 #'
 #' harbours <- data.frame(
-#'   name = c("Tarbert","Portavadie"),
-#'   lat  = c(55.865, 55.875),
-#'   lon  = c(-5.425, -5.300)
+#'   name = c("Plymouth"),
+#'   lat  = c(50.37),
+#'   lon  = c(-4.14)
 #' )
-#'
 #' result <- score_economic_viability(result, harbours = harbours,
-#'                                     target = "aquaculture")
-#'
-#' # Best aquaculture candidates
-#' subset(result, viability_class %in% c("Good","Excellent"))
-#' }
+#'   target = "aquaculture")
+#' table(result$viability_class)
 score_economic_viability <- function(result,
                                       harbours = NULL,
                                       target   = c("restoration","aquaculture"),

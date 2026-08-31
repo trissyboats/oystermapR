@@ -13,8 +13,8 @@ export_qml_style(tif_path)
 The \code{.qml} file path (invisibly).
 }
 \description{
-Writes a QGIS Layer Style file (\code{.qml}) using a yellow → orange → red →
+Writes a QGIS Layer Style file (\code{.qml}) using a yellow -> orange -> red ->
 dark red colour ramp, closely matching the BioBase/Lowrance heatmap style.
-The file is automatically applied when its name matches the \code{.tif} — no
+The file is automatically applied when its name matches the \code{.tif} -- no
 manual styling needed in QGIS.
 }

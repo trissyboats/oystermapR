@@ -3,6 +3,11 @@
 # No LaTeX, no pandoc -- uses grDevices::pdf() + ggplot2 only.
 # =============================================================================
 
+utils::globalVariables(c(
+  "score", "bin_class", "variable", "class", "n",
+  "suitability", "suitability_class", "lon", "lat"
+))
+
 #' Generate a compact printable PDF summary of oystermapR results
 #'
 #' @description
@@ -30,17 +35,13 @@
 #'
 #' @export
 #' @examples
-#' \dontrun{
-#' result <- predict_oyster(survey_df, "ostrea_edulis")
-#' generate_summary_pdf(result, "kames_bay_summary.pdf",
+#' sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+#' result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
+#' out_pdf <- file.path(tempdir(), "kames_bay_summary.pdf")
+#' generate_summary_pdf(result, out_pdf,
 #'                      title  = "Kames Bay -- Spring Survey",
-#'                      author = "T. Tucker")
-#' }
-utils::globalVariables(c(
-  "score", "bin_class", "variable", "class", "n",
-  "suitability", "suitability_class", "lon", "lat"
-))
-
+#'                      author = "T. Tucker",
+#'                      open   = FALSE)
 generate_summary_pdf <- function(result,
                                   output  = "oyster_summary.pdf",
                                   species = "ostrea_edulis",
@@ -50,15 +51,11 @@ generate_summary_pdf <- function(result,
                                   verbose = TRUE) {
 
   # -- Dependencies ---------------------------------------------------------
-  .ensure_pkg <- function(pkg) {
-    if (!requireNamespace(pkg, quietly = TRUE)) {
-      cli::cli_inform(c("i" = "Installing {.pkg {pkg}} for PDF summary..."))
-      utils::install.packages(pkg, quiet = TRUE)
-      if (!requireNamespace(pkg, quietly = TRUE))
-        cli::cli_abort("Could not install {.pkg {pkg}}. Run install.packages('{pkg}') manually.")
-    }
-  }
-  .ensure_pkg("ggplot2")
+  if (!requireNamespace("ggplot2", quietly = TRUE))
+    cli::cli_abort(c(
+      "Package {.pkg ggplot2} is required by {.fn generate_summary_pdf}.",
+      "i" = "Install it with: {.code install.packages('ggplot2')}"
+    ))
 
   # -- Tolerances -----------------------------------------------------------
   tol <- get_species_tolerances(species)

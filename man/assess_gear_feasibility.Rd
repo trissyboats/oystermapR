@@ -32,7 +32,7 @@ assess_gear_feasibility(
 \code{\link[=classify_substrate_from_backscatter]{classify_substrate_from_backscatter()}}.}
 
 \item{wave_col}{Character or NULL. Column for significant wave height Hs
-in metres (default NULL — wave check skipped if absent).}
+in metres (default NULL -- wave check skipped if absent).}
 
 \item{verbose}{Logical. Print feasibility summary (default TRUE).}
 }
@@ -53,15 +53,10 @@ operators. For pure restoration work, the \code{restoration_reef} gear type is
 always included and is the most relevant output.
 }
 \examples{
-\dontrun{
-result <- predict_oyster(survey, "ostrea_edulis")
+sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
+result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
 result <- assess_gear_feasibility(result)
-
-# Sites where longline is feasible AND suitability is High
-longline_sites <- subset(result,
-  gear_longline_feasible & suitability_class == "High")
-
 # Restoration reef sites (no farming licence needed)
 reef_sites <- subset(result, gear_restoration_reef_feasible)
-}
+nrow(reef_sites)
 }
