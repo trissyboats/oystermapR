@@ -11,18 +11,20 @@
 #' typical usage patterns.
 #'
 #' @param topic Character. Optionally focus on a specific topic:
-#'   `"sensors"`, `"merge"`, `"predict"`, `"qgis"`, `"species"`.
-#'   Default `NULL` prints the full guide.
+#'   `"sensors"`, `"merge"`, `"tides"`, `"predict"`, `"weighting"`,
+#'   `"qgis"`, `"species"`. Default `NULL` prints the full guide.
 #'
 #' @return Called for its side-effect (console output). Returns `invisible(NULL)`.
 #' @export
 #' @examples
 #' oystermapR_help()                  # full guide
 #' oystermapR_help("sensors")         # sensor ingestion only
+#' oystermapR_help("weighting")       # rank vs evidence weighting
 #' oystermapR_help("qgis")            # QGIS output only
 oystermapR_help <- function(topic = NULL) {
 
-  valid_topics <- c("sensors", "merge", "tides", "predict", "qgis", "species")
+  valid_topics <- c("sensors", "merge", "tides", "predict", "weighting",
+                    "qgis", "species")
 
   if (!is.null(topic)) {
     topic <- tolower(trimws(topic))
@@ -57,7 +59,9 @@ oystermapR_help <- function(topic = NULL) {
       "  3.  Merge all sensors        \u2192  merge_sensor_data()",
       "  3b. Correct depths to CD     \u2192  auto_tidal_correct()      (recommended)",
       "  4.  Run the model            \u2192  predict_oyster()",
-      "  5.  Open outputs in QGIS     \u2192  .tif  +  .qml  +  _contours.gpkg",
+      "  5.  Weight on measured evidence \u2192 predict_oyster(weighting = \"evidence\")",
+      "                                  (optional; the default is rank weighting)",
+      "  6.  Open outputs in QGIS     \u2192  .tif  +  .qml  +  _contours.gpkg",
       " "
     ))
     cli::cli_inform(
@@ -256,6 +260,9 @@ oystermapR_help <- function(topic = NULL) {
       "                             (e.g. lethal temperature, critically low oxygen).",
       "  {.field exclusion_reason}   Which variable caused the exclusion.",
       "  {.field score_<variable>}   Per-variable component scores.",
+      "  {.field n_layers_scored}    How many variables contributed here.",
+      "  {.field data_completeness}  Fraction of the species' variables observed.",
+      "  {.field limiting_factors}   Which variables held the score down.",
       "  {.field season}             Detected season from date + latitude.",
       " ",
       "Console output includes:",
@@ -270,6 +277,8 @@ oystermapR_help <- function(topic = NULL) {
       "  {.arg resolution}      Raster cell size in degrees (default 0.0002 \u2248 22 m).",
       "  {.arg contours}        Auto-export contour lines as GeoPackage (default TRUE).",
       "  {.arg verbose}         Print per-variable scoring detail (default FALSE).",
+      "  {.arg weighting}       \"rank\" (default) or \"evidence\".",
+      "                        See {.code oystermapR_help(\"weighting\")}.",
       " "
     ))
 
@@ -289,19 +298,140 @@ oystermapR_help <- function(topic = NULL) {
     cli::cli_rule()
   }
 
-  # ---- STEP 5: QGIS ----------------------------------------------------------
-  if (show_all || topic == "qgis") {
-    cli::cli_h2("Step 5 \u2014 Opening outputs in QGIS")
+  # ---- STEP 5: Evidence weighting --------------------------------------------
+  if (show_all || topic == "weighting") {
+    cli::cli_h2("Step 5 \u2014 Rank weighting vs evidence weighting")
 
     cli::cli_inform(c(
-      "Three files are written automatically when output_geotiff is set:",
+      "By default predict_oyster() weights each variable by 1/rank and",
+      "normalises those weights over the variables PRESENT IN YOUR DATA.",
+      " ",
+      "That renormalisation is the thing to understand before you read any map",
+      "it produces: a survey measuring 4 of a species' 17 scored variables gets",
+      "a confident number on 0\u20131 with nothing on it to say the rest was never",
+      "observed. Absence and irrelevance look identical. Two more consequences,",
+      "both measurable:",
+      "  \u2022 A variable that does not vary still absorbs weight. Depth scoring 1.0",
+      "    at every cell of a 6\u201310 m survey took a third of the weight and",
+      "    diluted the layers that actually discriminated.",
+      "  \u2022 A variable that does not reproduce is weighted the same as one that",
+      "    does, however badly its two independent estimates agree.",
+      " "
+    ))
+
+    cli::cli_h3("What evidence weighting does instead")
+    cli::cli_inform(c(
+      "  weight  =  (1 / rank)  x  reliability  x  spread,  normalised",
+      " ",
+      "  {.field prior}        1/rank from the published tolerance profile.",
+      "  {.field reliability}  Correlation between two independent estimates of",
+      "                       that layer, measured on your own survey.",
+      "  {.field spread}       Population SD of the layer's SCORE.",
+      " ",
+      "Reliability MULTIPLIES the biological prior and never replaces it \u2014",
+      "weighting on measured reliability alone promotes whatever the instrument",
+      "measures well, which is circular. A layer with no measured reliability",
+      "gets no weight at all: nothing enters the score on the strength of an",
+      "argument alone. A layer that scores the same everywhere also gets no",
+      "weight \u2014 it says nothing about where WITHIN THIS SURVEY conditions",
+      "differ. Zero weight means \"did not discriminate here\", never",
+      "\"does not matter\".",
+      " "
+    ))
+
+    cli::cli_h3("Measuring reliability")
+    cli::cli_code(c(
+      '# Where the survey has repeat coverage \u2014 line against line, pass',
+      '# against pass \u2014 measure it directly:',
+      'rel <- c(',
+      '  depth = reliability_from_replicates(depth_pass1, depth_pass2),',
+      '  slope = reliability_from_replicates(slope_pass1, slope_pass2)',
+      ')',
+      '',
+      '# Where a layer has no repeat coverage, inject its MEASURED error.',
+      '# sigma = between-pass disagreement / sqrt(2), NOT the within-cell',
+      '# standard error (which ignores errors systematic within a pass).',
+      'rel["bpi"] <- reliability_from_perturbation(',
+      '  depth_grid, sigma = 0.308 / sqrt(2),',
+      '  derive = function(z) bpi(z, scale = 10),   # propagate through it',
+      '  seed   = 1                                 # weights must reproduce',
+      ')'
+    ))
+    cli::cli_inform(" ")
+
+    cli::cli_h3("Running it")
+    cli::cli_code(c(
+      'ev <- predict_oyster(',
+      '  data             = survey,',
+      '  species          = "ostrea_edulis",',
+      '  weighting        = "evidence",',
+      '  reliability      = rel,',
+      '  attempted_failed = "shear_stress"   # instrumented, unusable data',
+      ')',
+      '',
+      'attr(ev, "evidence_weights")     # the derivation, layer by layer',
+      'attr(ev, "evidence_coverage")    # how much of the evidence base you have',
+      'cat(weight_table_md(ev), sep = "\\n")   # both, as markdown for a methods section'
+    ))
+    cli::cli_inform(c(
+      " ",
+      "Extra columns you get back:",
+      "  {.field suitability_rank}   What rank weighting would have said.",
+      "  {.field suitability_class_rank}  ... and its class, for comparison.",
+      "  {.field confidence}         Per-location confidence 0\u20131. Defaults to the",
+      "                             share of the evidence weight observed there.",
+      "  {.field suitability_class}  May also take the value \"Insufficient data\".",
+      " ",
+      "Coverage is reported once at survey level and never multiplied into the",
+      "per-cell score \u2014 doing that would push every location below any class",
+      "threshold on a low-coverage survey. Locations below {.arg confidence_floor}",
+      "(default 0.5) come back as \"Insufficient data\" rather than being handed a",
+      "class they cannot support. The continuous score is still returned for them.",
+      " ",
+      "Those locations count toward the surveyed area in area_summary() \u2014 that",
+      "ground WAS surveyed \u2014 but never toward the suitable area, and they are",
+      "dropped from patch analysis and from the top-sites list. A location the",
+      "model declined to classify cannot be recommended as a site.",
+      " ",
+      "The default is unchanged: {.code weighting = \"rank\"} reproduces every",
+      "result from 1.5.0 exactly.",
+      " "
+    ))
+
+    cli::cli_rule()
+  }
+
+  # ---- STEP 6: QGIS ----------------------------------------------------------
+  if (show_all || topic == "qgis") {
+    cli::cli_h2("Step 6 \u2014 Opening outputs in QGIS")
+
+    cli::cli_inform(c(
+      "Four files are written automatically when output_geotiff is set:",
       " "
     ))
     cli::cli_inform(c(
       "  {.file <name>.tif}             Raster heatmap \u2014 open this first.",
       "  {.file <name>.qml}             QGIS colour style (orange \u2192 red ramp).",
       "                                Auto-applied when the .qml sits next to the .tif.",
+      "  {.file <name>_insufficient.qml} Grey overlay for band 7 \u2014 load the raster a",
+      "                                second time and apply this to it.",
       "  {.file <name>_contours.gpkg}   Contour lines at 0.1 suitability intervals.",
+      " "
+    ))
+
+    cli::cli_h3("The seven bands")
+    cli::cli_inform(c(
+      "  1  suitability        Continuous score 0\u20131. The heatmap.",
+      "  2  excluded_mask      1 = hard-excluded by a threshold.",
+      "  3  n_observations     Survey points per cell.",
+      "  4  dist_to_nearest_m  Distance to the nearest real observation.",
+      "  5  n_layers_scored    Variables contributing per cell.",
+      "  6  confidence         Per-location confidence (evidence weighting only).",
+      "  7  insufficient_mask  1 = the model declined to classify this location.",
+      " ",
+      "Bands 3, 4, 6 and 7 say how much to trust band 1. Band 1 will happily",
+      "interpolate a confident-looking score across water nobody surveyed \u2014 style",
+      "band 4 and mask beyond a few point-spacings before showing anyone the map.",
       " "
     ))
 

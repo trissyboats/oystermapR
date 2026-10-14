@@ -8,8 +8,8 @@ oystermapR_help(topic = NULL)
 }
 \arguments{
 \item{topic}{Character. Optionally focus on a specific topic:
-\code{"sensors"}, \code{"merge"}, \code{"predict"}, \code{"qgis"}, \code{"species"}.
-Default \code{NULL} prints the full guide.}
+\code{"sensors"}, \code{"merge"}, \code{"tides"}, \code{"predict"}, \code{"weighting"},
+\code{"qgis"}, \code{"species"}. Default \code{NULL} prints the full guide.}
 }
 \value{
 Called for its side-effect (console output). Returns \code{invisible(NULL)}.
@@ -23,5 +23,6 @@ typical usage patterns.
 \examples{
 oystermapR_help()                  # full guide
 oystermapR_help("sensors")         # sensor ingestion only
+oystermapR_help("weighting")       # rank vs evidence weighting
 oystermapR_help("qgis")            # QGIS output only
 }

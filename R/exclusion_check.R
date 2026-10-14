@@ -63,14 +63,17 @@ check_exclusions <- function(df, tolerances) {
   # ---- 1. General temperature range ------------------------------------------
   if (!is.null(temp_col)) {
     t <- df[[temp_col]]
-    too_cold <- !is.na(t) & t < excl$temperature$min
-    too_hot  <- !is.na(t) & t > excl$temperature$max
+    # `%in% TRUE` keeps a flag from ever being NA; each excluded row gets its
+    # own reason (the reason for row i is built from t[i], not from every
+    # flagged temperature at once).
+    too_cold <- (!is.na(t) & t < excl$temperature$min) %in% TRUE
+    too_hot  <- (!is.na(t) & t > excl$temperature$max) %in% TRUE
 
     excluded <- excluded | too_cold | too_hot
-    reasons[too_cold] <- lapply(reasons[too_cold], function(r)
-      c(r, sprintf("temp_too_cold (%.1f < %.1f\u00b0C)", t[too_cold], excl$temperature$min)))
-    reasons[too_hot] <- lapply(reasons[too_hot], function(r)
-      c(r, sprintf("temp_too_hot (%.1f > %.1f\u00b0C)", t[too_hot], excl$temperature$max)))
+    reasons[too_cold] <- lapply(seq_len(n)[too_cold], function(i)
+      c(reasons[[i]], sprintf("temp_too_cold (%.1f < %.1f\u00b0C)", t[i], excl$temperature$min)))
+    reasons[too_hot] <- lapply(seq_len(n)[too_hot], function(i)
+      c(reasons[[i]], sprintf("temp_too_hot (%.1f > %.1f\u00b0C)", t[i], excl$temperature$max)))
   } else {
     cli::cli_warn("No temperature column found; skipping general temperature exclusion.")
   }
@@ -82,17 +85,23 @@ check_exclusions <- function(df, tolerances) {
 
     # Guard: only apply if the species actually defines a seasonal limit
     if (!is.null(excl$temperature_winter) && !is.null(excl$temperature_winter$min)) {
-      winter_flag <- seas == "winter" & !is.na(t) & t < excl$temperature_winter$min
+      # A missing season (no date column) makes `seas == "winter"` NA, and
+      # NA & TRUE is NA: for a species whose winter minimum is above some
+      # observed temperatures (tropical oysters on temperate data) the flag
+      # then held NAs and the assignment below stopped with "NAs are not
+      # allowed in subscripted assignments". Unknown season means no seasonal
+      # exclusion, as predict_oyster() says.
+      winter_flag <- ((seas == "winter") %in% TRUE) & (!is.na(t) & t < excl$temperature_winter$min) %in% TRUE
       excluded <- excluded | winter_flag
-      reasons[winter_flag] <- lapply(reasons[winter_flag], function(r)
-        c(r, sprintf("winter_temp_too_cold (%.1f < %.1f\u00b0C)", t[winter_flag], excl$temperature_winter$min)))
+      reasons[winter_flag] <- lapply(seq_len(n)[winter_flag], function(i)
+        c(reasons[[i]], sprintf("winter_temp_too_cold (%.1f < %.1f\u00b0C)", t[i], excl$temperature_winter$min)))
     }
 
     if (!is.null(excl$temperature_summer) && !is.null(excl$temperature_summer$max)) {
-      summer_flag <- seas == "summer" & !is.na(t) & t > excl$temperature_summer$max
+      summer_flag <- ((seas == "summer") %in% TRUE) & (!is.na(t) & t > excl$temperature_summer$max) %in% TRUE
       excluded <- excluded | summer_flag
-      reasons[summer_flag] <- lapply(reasons[summer_flag], function(r)
-        c(r, sprintf("summer_temp_too_hot (%.1f > %.1f\u00b0C)", t[summer_flag], excl$temperature_summer$max)))
+      reasons[summer_flag] <- lapply(seq_len(n)[summer_flag], function(i)
+        c(reasons[[i]], sprintf("summer_temp_too_hot (%.1f > %.1f\u00b0C)", t[i], excl$temperature_summer$max)))
     }
   }
 
@@ -111,8 +120,8 @@ check_exclusions <- function(df, tolerances) {
       sal_min <- rep(excl$salinity$min_cold, n)
     }
 
-    sal_low  <- !is.na(s) & s < sal_min
-    sal_high <- !is.na(s) & s > excl$salinity$max
+    sal_low  <- (!is.na(s) & s < sal_min) %in% TRUE
+    sal_high <- (!is.na(s) & s > excl$salinity$max) %in% TRUE
 
     excluded <- excluded | sal_low | sal_high
     reasons[sal_low] <- lapply(seq_len(n)[sal_low], function(i)
@@ -126,11 +135,11 @@ check_exclusions <- function(df, tolerances) {
   # ---- 4. Dissolved oxygen ---------------------------------------------------
   if (!is.null(do_col)) {
     do_vals  <- df[[do_col]]
-    hypoxia  <- !is.na(do_vals) & do_vals < excl$dissolved_oxygen$min
+    hypoxia  <- (!is.na(do_vals) & do_vals < excl$dissolved_oxygen$min) %in% TRUE
 
     excluded <- excluded | hypoxia
-    reasons[hypoxia] <- lapply(reasons[hypoxia], function(r)
-      c(r, sprintf("hypoxia (%.2f < %.1f mg/L)", do_vals[hypoxia], excl$dissolved_oxygen$min)))
+    reasons[hypoxia] <- lapply(seq_len(n)[hypoxia], function(i)
+      c(reasons[[i]], sprintf("hypoxia (%.2f < %.1f mg/L)", do_vals[i], excl$dissolved_oxygen$min)))
   } else {
     cli::cli_warn("No dissolved oxygen column found; skipping oxygen exclusion.")
   }

@@ -1,8 +1,8 @@
-# oystermapR <img src="https://img.shields.io/badge/version-1.5.0-blue" align="right"/>
+# oystermapR <img src="https://img.shields.io/badge/version-1.6.0-blue" align="right"/>
 
 > Predict and map oyster growth suitability from environmental survey data
 
-`oystermapR` takes tabular sensor data — from ADCPs, CTDs, bathymetric sonar, or standard CSV files — applies species-specific AHP-weighted scoring rules, and returns per-location suitability scores alongside a five-band GeoTIFF heatmap ready to load in QGIS.
+`oystermapR` takes tabular sensor data — from ADCPs, CTDs, bathymetric sonar, or standard CSV files — applies species-specific rank-reciprocal weighted scoring rules (each variable's weight is the inverse of its importance rank), and returns per-location suitability scores alongside a five-band GeoTIFF heatmap ready to load in QGIS.
 
 ---
 
@@ -24,8 +24,8 @@
 | `crassostrea_belcheri` | *Crassostrea belcheri* | Tropical Rock Oyster | SE Asia |
 | `ostrea_chilensis` | *Ostrea chilensis* | Chilean Oyster | S Chile / New Zealand |
 | `ostrea_denselamellosa` | *Ostrea denselamellosa* | Korean Flat Oyster | E Asia |
-| `ostrea_angasi` | *Ostrea angasi* | Angasi Oyster | S Australia |
-| `saccostrea_cucullata` | *Saccostrea cucullata* | Rock Oyster | Indian Ocean / W Pacific |
+| `ostrea_angasi` | *Ostrea angasi* | Australian Flat Oyster | S Australia |
+| `saccostrea_cucullata` | *Saccostrea cucullata* | Hooded Rock Oyster | Indian Ocean / W Pacific |
 | `crassostrea_iredalei` | *Crassostrea iredalei* | Slipper Oyster | SE Asia (brackish) |
 
 ---
@@ -136,6 +136,47 @@ Sort by `"mean_score"` to find bottlenecks (variables scoring poorly across the 
 ### Data layer coverage
 
 `n_layers_scored` in the result dataframe records how many variables contributed to the suitability score at each location. Low values indicate points where the score rests on few observations. GeoTIFF band 5 maps this spatially in QGIS.
+
+---
+
+## Evidence weighting
+
+By default the engine weights each variable by `1 / rank` and normalises those
+weights over whichever variables are present in your data. That renormalisation
+makes absence indistinguishable from irrelevance: a survey measuring four of a
+species' seventeen scored variables gets a confident number on [0, 1] with
+nothing on it to say the rest was never observed.
+
+```r
+# Reliability is measured, never assumed. Two independent estimates of the same
+# quantity -- line against line, pass against pass.
+rel <- c(
+  depth              = reliability_from_replicates(depth_pass1, depth_pass2),
+  slope              = reliability_from_replicates(slope_pass1, slope_pass2),
+  substrate_hardness = reliability_from_replicates(hard_pass1,  hard_pass2)
+)
+
+ev <- predict_oyster(survey, "ostrea_edulis",
+                     weighting   = "evidence",
+                     reliability = rel)
+
+attr(ev, "evidence_weights")     # the derivation, layer by layer
+attr(ev, "evidence_coverage")    # what fraction of the evidence base you have
+cat(weight_table_md(ev), sep = "\n")   # both, as markdown for a methods section
+```
+
+`w = prior x reliability x spread`. Reliability multiplies the biological prior
+and never replaces it — weighting on measured reliability alone promotes
+whatever the instrument happens to measure well, which is circular. A layer
+with no measured reliability gets no weight; a layer that scores the same
+everywhere gets no weight either, because it carries no information about where
+within *this* survey conditions differ. Coverage is reported separately and
+never multiplied into the per-cell score.
+
+Locations below `confidence_floor` come back as `"Insufficient data"` rather
+than being handed a class they cannot support. `suitability_rank` and
+`suitability_class_rank` are kept alongside so the two weightings can be
+compared directly.
 
 ---
 
@@ -278,6 +319,13 @@ save_tolerance_update("ostrea_edulis")
 | `compare_species()` | Side-by-side suitability across multiple species |
 | `composite_seasonal()` | Merge summer/winter surveys into a composite score |
 | `generate_report()` | Export a formatted PDF or HTML report |
+| `evidence_weights()` | Weights from published rank x measured reliability x realised spread |
+| `evidence_coverage()` | Share of the species' evidence base the survey actually observed |
+| `evidence_suitability()` | Re-score on evidence weights; curves untouched |
+| `reliability_from_replicates()` | Reliability from real repeat coverage |
+| `reliability_from_perturbation()` | Reliability from a measured error model |
+| `confidence_score()` | Per-location confidence from weighted components |
+| `weight_table_md()` | Weight derivation and coverage ledger as markdown |
 
 ---
 
@@ -302,6 +350,15 @@ GeoTIFF bands:
 | 3 | `n_observations` | Number of survey points per raster cell |
 | 4 | `dist_to_nearest_m` | Distance to nearest survey point (m) |
 | 5 | `n_layers_scored` | Number of environmental variables that contributed to the score |
+| 6 | `confidence` | Per-location confidence [0, 1] under evidence weighting; `NA` under rank weighting |
+| 7 | `insufficient_mask` | 1 = the model declined to classify this location |
+
+Bands 3, 4, 6 and 7 are the ones that say how much to trust band 1. Band 1 will
+interpolate a confident-looking score across water nobody surveyed.
+
+`export_qml_style()` writes two files: the band 1 colour ramp, and a companion
+`<name>_insufficient.qml` that styles band 7 as a grey overlay. Load the raster
+twice and drop one style on each to show unclassified ground as its own class.
 
 ---
 
@@ -309,7 +366,7 @@ GeoTIFF bands:
 
 If you use `oystermapR` in published work, please cite:
 
-> Tucker T. (2026). *oystermapR: Predict and Map Oyster Growth Suitability from Environmental Data*. R package version 1.5.0. https://github.com/trissyboats/oystermapR
+> Tucker T. (2026). *oystermapR: Predict and Map Oyster Growth Suitability from Environmental Data*. R package version 1.6.0. https://github.com/trissyboats/oystermapR
 
 ---
 

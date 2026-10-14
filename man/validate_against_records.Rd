@@ -56,7 +56,7 @@ A named list:
 Compares the suitability scores from \code{\link[=predict_oyster]{predict_oyster()}} against a
 presence/absence dataset to quantify how well the model discriminates
 between occupied and unoccupied habitat. Useful for assessing whether the
-AHP-weighted scoring produces ecologically defensible outputs before using
+rank-weighted scoring produces ecologically defensible outputs before using
 them for site selection.
 
 \strong{Metrics computed:}

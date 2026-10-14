@@ -258,3 +258,87 @@ test_that("predict_oyster uses cached Bayesian parameters after update", {
 
   reset_tolerance_update("ostrea_edulis")
 })
+
+
+# ---- the fitter fits what is deployed -------------------------------------------
+
+.two_var_tols <- function() {
+  tols <- get_species_tolerances("ostrea_edulis")
+  sub <- tols; sub$scored <- tols$scored[c("temperature", "salinity")]
+  sub
+}
+.deployed_S <- function(tl, ev) {
+  vapply(seq_along(ev$temperature), function(i)
+    .score_row(list(temperature = ev$temperature[i], salinity = ev$salinity[i]), tl)$score,
+    numeric(1))
+}
+
+test_that(".fit_suitability equals the deployed scorer, weights included", {
+  sub <- .two_var_tols()
+  set.seed(1); n <- 60
+  ev <- list(temperature = runif(n, 5, 27), salinity = runif(n, 15, 38))
+  p_t <- sub$scored$temperature; p_s <- sub$scored$salinity
+  # rank 1 vs rank 5: if weights were rank instead of 1/rank this could not match
+  expect_gt(p_s$rank, p_t$rank)
+  theta0 <- c(0, 4, p_t$optimal_min, p_t$optimal_max, p_s$optimal_min, p_s$optimal_max)
+  expect_equal(.fit_suitability(theta0, c("temperature", "salinity"), sub, ev),
+               .deployed_S(sub, ev), tolerance = 1e-4)   # .score_row rounds to 4 dp
+})
+
+test_that("shoulders move with a candidate optimum exactly as the returned tolerances do", {
+  sub <- .two_var_tols()
+  set.seed(2); n <- 60
+  ev <- list(temperature = runif(n, 5, 27), salinity = runif(n, 15, 38))
+  theta <- c(0, 4, 13, 19.5, 27, 33)                    # optimum shifted and narrowed
+  shifted <- .apply_params_to_tols(sub, list(temperature = list(optimal_min = 13, optimal_max = 19.5),
+                                             salinity    = list(optimal_min = 27, optimal_max = 33)))
+  expect_equal(.fit_suitability(theta, c("temperature", "salinity"), sub, ev),
+               .deployed_S(shifted, ev), tolerance = 1e-4)
+  pp <- .params_at(sub$scored$temperature, 13, 19.5)
+  expect_equal(pp$optimal_min, 13); expect_equal(pp$optimal_max, 19.5)
+  expect_equal(pp$absolute_max, sub$scored$temperature$absolute_max)   # hard limit stays put
+})
+
+test_that("a two-variable fit recovers the heavily weighted variable's optimum", {
+  .cleanup_profiles <- function() {
+    for (k in grep("::", names(.oystermapR_env$posterior_cache), value = TRUE))
+      .oystermapR_env$posterior_cache[[k]] <- NULL
+  }
+  on.exit(.cleanup_profiles())
+  sub <- .two_var_tols()
+  err <- vapply(1:3, function(seed) {
+    set.seed(seed); n <- 400
+    d <- data.frame(lat = 51, lon = -4, temperature = runif(n, 6, 24), salinity = runif(n, 15, 38))
+    tl <- .apply_params_to_tols(sub, list(temperature = list(optimal_min = 12, optimal_max = 18),
+                                          salinity    = list(optimal_min = 26, optimal_max = 33)))
+    d$presence <- rbinom(n, 1, plogis(-5 + 10 * .deployed_S(tl, d)))
+    f <- suppressMessages(suppressWarnings(update_species_tolerances(
+      d, "ostrea_edulis", update_vars = c("temperature", "salinity"), verbose = FALSE,
+      profile = paste0("rec", seed))))
+    c(abs(unname(f$updated_params$temperature$optimal_min) - 12),
+      abs(unname(f$updated_params$temperature$optimal_max) - 18), f$mcfadden_r2)
+  }, numeric(3))
+  expect_lt(mean(err[1, ]), 0.6)     # was ~2 degrees out at the upper bound before
+  expect_lt(mean(err[2, ]), 1.0)
+  expect_gt(min(err[3, ]), 0.3)      # the fit is informative (it was ~0.03 before)
+})
+
+test_that("posterior SDs are numbers and a bound-hitting estimate reports the prior SD", {
+  on.exit(for (k in grep("::", names(.oystermapR_env$posterior_cache), value = TRUE))
+    .oystermapR_env$posterior_cache[[k]] <- NULL)
+  set.seed(4); n <- 300
+  d <- data.frame(lat = 51, lon = -4, temperature = runif(n, 6, 26))
+  # An informative optimum (18-24) above what the search box allows for the
+  # lower bound (default optimum 10-20, box to about 16): omin ends up outside it.
+  d$presence <- rbinom(n, 1, ifelse(d$temperature > 18 & d$temperature < 24, 0.95, 0.05))
+  f <- suppressMessages(suppressWarnings(update_species_tolerances(
+    d, "ostrea_edulis", update_vars = "temperature", verbose = FALSE, profile = "bnd")))
+  u <- f$updated_params$temperature
+  expect_true(is.finite(u$posterior_sd_omin) && u$posterior_sd_omin > 0)
+  expect_true(all(is.finite(u$ci95_omin)) && all(is.finite(u$ci95_omax)))
+  expect_true(isTRUE(u$at_bound_omin))
+  expect_false(isTRUE(u$at_bound_omax))    # the well-determined bound is not flagged
+  expect_gt(f$mcfadden_r2, 0.3)
+  base <- get_species_tolerances("ostrea_edulis")$scored$temperature
+  expect_equal(unname(u$posterior_sd_omin), (base$optimal_max - base$optimal_min) * 0.20, tolerance = 1e-3)
+})

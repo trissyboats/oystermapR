@@ -28,7 +28,7 @@
   # Seasonal temperature bounds: Helm M.M. et al. (2004) 'Hatchery Culture of
   #   Bivalves.' FAO Fisheries Technical Paper No. 471. Rome: FAO.
   #
-  # Current velocity ranking: synthesised from C. gigas AHP literature and
+  # Current velocity ranking: synthesised from C. gigas habitat-suitability literature and
   #   general bivalve trophodynamics; see package documentation.
   # ===========================================================================
   "ostrea_edulis" = list(

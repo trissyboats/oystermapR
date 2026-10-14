@@ -1,12 +1,12 @@
 Package: oystermapR
 Title: Predict and Map Oyster Growth Suitability from Environmental Data
-Version: 1.5.0
+Version: 1.6.0
 Authors@R:
     person("T", "Tucker", email = "tristantucker48@gmail.com",
            role = c("aut", "cre"),
            comment = c(ORCID = "0009-0008-5190-6423"))
 Description: Predicts spatial suitability for oyster growth from environmental
-    survey data using Analytic Hierarchy Process (AHP) weighted scoring.
+    survey data using rank-reciprocal weighted scoring.
     Users supply sensor data from Acoustic Doppler Current Profilers (ADCP),
     Conductivity-Temperature-Depth (CTD) sensors, bathymetric sonar, and
     sidescan sonar, specify a target species, and receive per-location
@@ -29,8 +29,16 @@ Description: Predicts spatial suitability for oyster growth from environmental
     scoring with optional live International Council for the Exploration of the
     Sea (ICES) data integration, hybrid larval dispersal connectivity scoring
     (union-find Gaussian kernel plus optional 'OpenDrift' or Finite Volume
-    Community Ocean Model ('FVCOM') connectivity matrix), and batch
-    multi-species comparison.
+    Community Ocean Model ('FVCOM') connectivity matrix), batch
+    multi-species comparison, and evidence-weighted scoring in which each
+    variable's weight is its published rank multiplied by the measured
+    reliability and realised spread of that layer, with the fraction of the
+    species' evidence base the survey observed reported alongside the score
+    rather than normalised away, and lineage-specific tolerance profiles for
+    related populations, in which thinly sampled lineages borrow strength from
+    relatives across a genetic distance matrix only where tolerance is shown to
+    track relatedness, with inverse mapping of where each lineage is more likely
+    to occur and which source population suits a site.
 License: GPL (>= 3)
 URL: https://github.com/trissyboats/oystermapR
 BugReports: https://github.com/trissyboats/oystermapR/issues

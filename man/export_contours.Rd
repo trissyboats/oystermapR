@@ -27,6 +27,7 @@ depth-contour look shown in BioBase outputs.
 sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
 result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
 out_tif <- file.path(tempdir(), "oyster_heatmap.tif")
-export_geotiff(result, out_tif)
+# A coarse grid keeps the example fast; use the default resolution for real work.
+export_geotiff(result, out_tif, resolution = 0.001, contours = FALSE)
 export_contours(out_tif)
 }

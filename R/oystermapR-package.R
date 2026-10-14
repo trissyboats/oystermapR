@@ -1,7 +1,7 @@
 #' oystermapR: Predict and Map Oyster Growth Suitability
 #'
 #' @description
-#' `oystermapR` provides a rule-based, AHP-weighted suitability scoring
+#' `oystermapR` provides a rule-based, rank-reciprocal weighted suitability scoring
 #' pipeline for predicting where conditions are most likely to support oyster
 #' growth. Users supply a tabular dataset of environmental and physical
 #' measurements (collected in the field or from remote sensing), specify a

@@ -50,6 +50,10 @@ generate_summary_pdf <- function(result,
                                   open    = TRUE,
                                   verbose = TRUE) {
 
+  # User-supplied text goes through the same locale guard as the built-in text.
+  title  <- .g(title)
+  author <- .g(author)
+
   # -- Dependencies ---------------------------------------------------------
   if (!requireNamespace("ggplot2", quietly = TRUE))
     cli::cli_abort(c(
@@ -121,10 +125,10 @@ generate_summary_pdf <- function(result,
   grid::grid.text(title, x = 0.04, y = 0.970, just = "left",
                   gp = grid::gpar(fontsize = 15, fontface = "bold", col = "white"))
 
-  author_str <- if (nchar(trimws(author)) > 0) paste0("  \u00b7  ", author) else ""
+  author_str <- if (nchar(trimws(author)) > 0) paste0(.g("  \u00b7  "), author) else ""
   grid::grid.text(
-    paste0(tol$latin_name, "  \u2014  ", tol$common_name, author_str,
-           "  \u00b7  ", format(Sys.Date(), "%d %B %Y")),
+    paste0(tol$latin_name, .g("  \u2014  "), tol$common_name, author_str,
+           .g("  \u00b7  "), format(Sys.Date(), "%d %B %Y")),
     x = 0.04, y = 0.928, just = "left",
     gp = grid::gpar(fontsize = 8.5, col = "#6c7a89"))
 
@@ -138,9 +142,9 @@ generate_summary_pdf <- function(result,
                "Excluded (hard limits)",
                "Scored locations",
                "Mean suitability (scored)",
-               paste0("High (\u2265 0.70)"),
-               "Moderate (0.45\u20130.70)",
-               "Low (0.20\u20130.45)",
+               paste0(.g("High (\u2265 0.70)")),
+               .g("Moderate (0.45\u20130.70)"),
+               .g("Low (0.20\u20130.45)"),
                "Very Low (< 0.20)"),
     Value  = as.character(c(n_total, n_excl, n_scored, mean_s,
                              n_high, n_mod, n_low, n_vlow)),
@@ -208,9 +212,9 @@ generate_summary_pdf <- function(result,
                   gp = grid::gpar(fill = "#2c3e50", col = NA))
   grid::grid.text(
     paste0("oystermapR ", utils::packageVersion("oystermapR"),
-           "  \u00b7  ", tol$latin_name,
-           "  \u00b7  Data quality: ", tol$data_quality,
-           "  \u00b7  Page 1 of 4"),
+           .g("  \u00b7  "), tol$latin_name,
+           .g("  \u00b7  Data quality: "), tol$data_quality,
+           .g("  \u00b7  Page 1 of 4")),
     x = 0.5, y = 0.018,
     gp = grid::gpar(fontsize = 7, col = grDevices::rgb(1, 1, 1, 0.7)))
 
@@ -272,14 +276,14 @@ generate_summary_pdf <- function(result,
       } +
       ggplot2::coord_fixed(ratio = aspect) +
       ggplot2::labs(
-        title    = paste0(tol$common_name, " \u2014 Suitability Heatmap"),
-        subtitle = paste0(n_pts, " scored locations  \u00b7  ",
+        title    = paste0(tol$common_name, .g(" \u2014 Suitability Heatmap")),
+        subtitle = paste0(n_pts, .g(" scored locations  \u00b7  "),
                           format(Sys.Date(), "%d %B %Y"),
-                          "  \u00b7  Colour = mean suitability per grid cell"),
-        x = "Longitude (\u00b0E)",
-        y = "Latitude (\u00b0N)",
+                          .g("  \u00b7  Colour = mean suitability per grid cell")),
+        x = .g("Longitude (\u00b0E)"),
+        y = .g("Latitude (\u00b0N)"),
         caption = paste0("Species: ", tol$latin_name,
-                         "  \u00b7  oystermapR ", utils::packageVersion("oystermapR"))
+                         .g("  \u00b7  oystermapR "), utils::packageVersion("oystermapR"))
       ) +
       ggplot2::theme_minimal(base_size = 10) +
       ggplot2::theme(
@@ -344,11 +348,11 @@ generate_summary_pdf <- function(result,
                                   breaks = c(0, 0.2, 0.45, 0.7, 1.0)) +
       ggplot2::labs(
         title    = "Per-Variable Mean Scores",
-        subtitle = "Non-excluded locations only  \u00b7  dashed lines = class thresholds",
-        x        = "Mean Score (0 \u2013 1)",
+        subtitle = .g("Non-excluded locations only  \u00b7  dashed lines = class thresholds"),
+        x        = .g("Mean Score (0 \u2013 1)"),
         y        = NULL,
         caption  = paste0("Species: ", tol$latin_name,
-                           "  \u00b7  oystermapR ", utils::packageVersion("oystermapR"))
+                           .g("  \u00b7  oystermapR "), utils::packageVersion("oystermapR"))
       ) +
       ggplot2::theme_minimal(base_size = 10) +
       ggplot2::theme(
@@ -430,7 +434,7 @@ generate_summary_pdf <- function(result,
         x       = "Locations",
         y       = NULL,
         caption = paste0("Species: ", tol$latin_name,
-                          "  \u00b7  oystermapR ", utils::packageVersion("oystermapR"))
+                          .g("  \u00b7  oystermapR "), utils::packageVersion("oystermapR"))
       ) +
       ggplot2::theme_minimal(base_size = 10) +
       ggplot2::theme(
@@ -460,4 +464,26 @@ generate_summary_pdf <- function(result,
   }
 
   invisible(output)
+}
+
+
+# Text for the PDF device. In a UTF-8 locale it is returned as is. In a C or
+# other non-UTF-8 locale the device cannot convert an em dash or a middle dot
+# and errors ("conversion failure ... in 'mbcsToSbcs'"), so the few typographic
+# characters used here get plain-ASCII stand-ins and anything else non-ASCII a
+# "?". Keeps generate_summary_pdf() working under R CMD check in any locale.
+.g <- function(x, utf8 = isTRUE(l10n_info()[["UTF-8"]])) {
+  if (utf8) return(x)
+  # By code point, not gsub(): a fixed-pattern gsub on UTF-8 text silently does
+  # nothing in a C locale.
+  map <- c("8212" = "-", "8211" = "-", "183" = "|", "176" = " deg", "8805" = ">=")
+  vapply(x, function(s) {
+    if (is.na(s)) return(NA_character_)
+    cps <- utf8ToInt(enc2utf8(s))
+    paste0(vapply(cps, function(cp) {
+      if (cp < 128L) intToUtf8(cp)
+      else if (!is.na(map[as.character(cp)])) unname(map[as.character(cp)])
+      else "?"
+    }, character(1)), collapse = "")
+  }, character(1), USE.NAMES = FALSE)
 }

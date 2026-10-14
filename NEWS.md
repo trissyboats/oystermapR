@@ -1,3 +1,176 @@
+# oystermapR 1.6.0
+
+## Documentation
+
+The weighting is now described accurately as rank-reciprocal (each variable's weight is the inverse of its importance rank for the species). Earlier text called it "AHP-weighted", but no pairwise-comparison matrices or consistency ratio were ever computed. No behaviour changes. The `area_summary()` example's slow second call now runs under `\donttest{}` to keep example time short.
+
+## Evidence weighting
+
+`predict_oyster()` gains `weighting = c("rank", "evidence")`. The default is
+unchanged, so every existing call returns exactly what it returned in 1.5.0.
+
+The problem it addresses: the engine renormalises its rank weights over
+whichever variables happen to be present, so a survey measuring four of a
+species' seventeen scored variables returns a confident number on [0, 1] with
+nothing on it to say the rest of the evidence base was never observed. Absence
+is indistinguishable from irrelevance. Two further consequences follow, both
+measurable — a variable that does not vary still absorbs weight, and a variable
+that does not reproduce is weighted identically to one that does.
+
+Under `weighting = "evidence"` each variable's weight becomes
+`prior x reliability x spread`, normalised. Reliability multiplies the
+biological prior and never replaces it: weighting on measured reliability alone
+would promote whatever the instrument happens to measure well, which is
+circular. Coverage — the share of the species' total prior weight the survey
+observed — is reported separately and never multiplied into the per-cell score,
+which would put every location below any class threshold on a low-coverage
+survey.
+
+New exported functions:
+
+* `evidence_coverage()` — share of the species' total prior weight observed.
+  Weight-based, unlike the count-based `data_completeness` already returned, so
+  missing a rank-1 variable costs six times what missing a rank-6 one does.
+  `attempted_failed` prices an instrument failure in the same units.
+* `reliability_from_replicates()` — reliability from real repeat coverage, with
+  a confidence interval and an `established` flag.
+* `layer_reproducibility()` — measures reliability for every layer at once from
+  a survey's own overlapping lines: bins the survey to a grid, pairs the lines
+  crossing each cell, and passes the pairs to `reliability_from_replicates()`.
+  Returns a named vector ready for `predict_oyster(reliability = )`, named as
+  the scored layer (`depth`, not `depth_m`), with `NA` for layers with too few
+  overlaps to test. Needs a line/pass column and at least two lines.
+* `reliability_from_perturbation()` — the same statistic where there is no
+  repeat coverage, by injecting the measured per-observation error. `derive`
+  propagates depth error into quantities computed from depth.
+* `evidence_weights()` — the weight derivation as an auditable table, with
+  provenance per layer.
+* `confidence_score()` — per-location confidence from weighted components.
+* `evidence_suitability()` — re-weights existing `score_*` columns and attaches
+  coverage. Scoring curves are untouched.
+* `weight_table_md()` — weight derivation and coverage ledger as markdown, for
+  a methods section.
+
+Plus `print()` methods for `evidence_weights` and `evidence_coverage`.
+
+## Lineage tolerance profiles and inverse lineage mapping
+
+Tolerance profiles for populations or lineages, linked by genetic relatedness,
+and maps of where each is more likely to occur. Bring-your-own-data: occurrence
+records carrying a lineage identifier, and a pairwise genetic distance matrix.
+`lineage_walkthrough.R` runs the whole workflow on simulated data.
+
+* `as_lineage_distances()` — validates a distance matrix (matrix, `dist`, data
+  frame or CSV).
+* `lineage_signal()` — Mantel test of whether related lineages have more
+  similar fitted tolerances. Pooling is refused below six fitted lineages, and
+  when the signal is absent lineages are fitted alone.
+* `fit_lineages()` — one profile per lineage via the existing Bayesian update.
+  Where signal is shown, a Gaussian-process prior decaying with genetic
+  distance lets thin lineages borrow from relatives, and lineages with no
+  records get a profile from relatedness alone (`source = "borrowed"`).
+* `lineage_occurrence()` — per-lineage suitability and a posterior across
+  lineages at every location, with an ambiguity measure and an `"Ambiguous"`
+  class where the environment does not tell lineages apart.
+* `rank_source_populations()` — ranks lineages as sources for each site, with
+  an optional discount for genetic distance from the locally native lineage
+  and optional posterior draws.
+* `lineage_fits_as_list()` / `lineage_fits_from_list()` — reduce a fitted model
+  to plain data (profile table, calibration, distances, signal test) that
+  survives JSON, and rebuild a scoring-ready model from it. The SaaS stores
+  models this way.
+
+`update_species_tolerances()` gains `profile` (fit and cache under
+`"<species>::<profile>"`) and `prior` (per-variable prior means and SDs). Both
+default to `NULL`, which leaves behaviour unchanged, and the result now also
+carries `tolerances`.
+
+## Fixes to `update_species_tolerances()`
+
+The Bayesian update fitted a private copy of the scoring curve that differed
+from the one `predict_oyster()` uses, and reported no uncertainty. All of the
+following are corrected; results change.
+
+* **It now fits the curve it deploys.** The likelihood calls the same
+  `.score_numeric()` as the maps, with shoulders scaled to the candidate optimum
+  exactly as the returned tolerance object carries them. Before, the lower
+  shoulder was held fixed while the returned curve scaled it.
+* **Variables are weighted by 1/rank, as in scoring.** The likelihood weighted
+  by rank, so with more than one fitted variable a rank-5 variable counted five
+  times a rank-1 one -- the priorities inverted. With one variable this cancels,
+  which is why it went unnoticed. On data generated by the deployed scorer the
+  old fit's McFadden R-squared was 0.02-0.05 (barely better than no model); it is
+  now 0.55-0.69, and the heavily weighted variable's optimum is recovered to
+  within about 0.1 degrees at the lower bound.
+* **Posterior SDs and credible intervals are numbers.** In the MAP + Laplace
+  path `sqrt(diag(cov))` dropped the parameter names, so the by-name lookups
+  returned `NA` for every `posterior_sd_*` and `ci95_*`.
+* **A non-finite Hessian no longer errors.** A MAP estimate on the optimiser's
+  bound could crash the update with "missing value where TRUE/FALSE needed".
+* **Bound-hitting estimates are flagged.** `updated_params[[v]]$at_bound_omin`
+  and `at_bound_omax` say when an estimate sits on (or outside) the search box;
+  its Laplace curvature is meaningless there, so the prior SD is reported
+  instead, with a warning.
+
+**If you have custom tolerance envelopes fitted on more than one variable,
+refit them.** They were fitted under the inverted weights.
+
+`seafloormapRcore` carries the only other copy of this code (it cannot run on
+its own -- it needs a species pack that supplies `get_species_tolerances()`) and
+has the same corrections.
+
+## Fixes to `check_exclusions()` (and so `predict_oyster()`)
+
+* **`predict_oyster()` no longer fails for `crassostrea_iredalei` and
+  `saccostrea_cucullata` on a survey without a date column.** With no date,
+  `season` is `NA` and the seasonal checks are meant to be skipped, but
+  `season == "winter"` is then `NA`, `NA & TRUE` is `NA`, and any cell colder
+  than the species' winter minimum (18 degrees for these two) left `NA` in the
+  flag. The assignment that records the reason then stopped with "NAs are not
+  allowed in subscripted assignments". The other fifteen species have winter
+  minimums below the temperatures in typical data, which hid it. Every species
+  is now scored on the example survey in the tests.
+* **`exclusion_reason` names each row's own value.** The reason for an excluded
+  row was built from every flagged row's temperature (or oxygen) at once, so
+  with two cells too cold both rows read "temp_too_cold (2.0 < 7.0); temp_too_cold
+  (3.0 < 7.0)". Each row now lists only its own. This affects the temperature,
+  seasonal and oxygen reasons; the salinity reason was already per row.
+
+## Fix: `generate_summary_pdf()` in a non-UTF-8 locale
+
+The PDF device cannot draw an em dash or a middle dot in a C or other non-UTF-8
+locale and stopped with "conversion failure ... in 'mbcsToSbcs'" -- including
+under `R CMD check` on some machines. In such a locale those characters now get
+plain-ASCII stand-ins; output in a UTF-8 locale is unchanged.
+
+## Insufficient data is a class
+
+A location below `confidence_floor` (default 0.5) is returned as
+`"Insufficient data"` rather than handed a class it cannot support. The
+continuous score is still returned for it. Consequences elsewhere:
+
+* `area_summary()` counts those locations toward the surveyed area — that
+  ground was surveyed — and never toward the suitable area, which remains
+  High + Moderate. They are excluded from patch analysis.
+* `export_geotiff()` now writes seven bands. Band 6 is per-location
+  `confidence`; band 7 is the `insufficient_mask`. Unclassified locations are
+  held out of the band 1 interpolation rather than asserting a suitability
+  into the surface.
+* `export_qml_style()` writes a companion `<name>_insufficient.qml` styling
+  band 7 as a grey overlay, so unclassified ground reads in QGIS as a class
+  rather than as a hole in the map.
+* Locations the model declined to classify are no longer eligible as top
+  introduction sites.
+
+## Notes
+
+* `R/evidence_weights.R` is vendored from `seafloormapRcore`. oystermapR does
+  not import the core package — it carries its own copy of the engine — so fix
+  bugs in the core copy first and re-vendor rather than editing in place.
+* Reliability has no default. A layer with no measured reliability receives no
+  weight, which is what keeps the method honest: nothing enters the score on
+  the strength of an argument alone.
+
 # oystermapR 1.5.0
 
 ## Ocean acidification scoring (pH + aragonite saturation)

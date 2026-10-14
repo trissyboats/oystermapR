@@ -10,11 +10,19 @@ export_qml_style(tif_path)
 \item{tif_path}{Character. Path to the \code{.tif} from \code{\link[=export_geotiff]{export_geotiff()}}.}
 }
 \value{
-The \code{.qml} file path (invisibly).
+The \code{.qml} file path (invisibly). The overlay style path is
+returned as the attribute \code{"overlay"}.
 }
 \description{
 Writes a QGIS Layer Style file (\code{.qml}) using a yellow -> orange -> red ->
 dark red colour ramp, closely matching the BioBase/Lowrance heatmap style.
 The file is automatically applied when its name matches the \code{.tif} -- no
 manual styling needed in QGIS.
+
+A companion \verb{<name>_insufficient.qml} is written at the same time. It styles
+band 7 -- the locations the model declined to classify under evidence
+weighting -- as a flat grey overlay, transparent everywhere else. Load the
+raster a second time in QGIS and drop that style on it to show unclassified
+ground as its own class sitting over the heatmap, rather than leaving the
+viewer to read an absence as a low score.
 }

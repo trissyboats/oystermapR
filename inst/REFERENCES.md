@@ -5,7 +5,9 @@ ecological models, scoring parameters, and methods implemented in oystermapR.
 
 ---
 
-## Core AHP Suitability Framework
+## Weighting framework
+
+Variable weights are rank-reciprocal (weight proportional to 1 / importance rank); no pairwise-comparison elicitation or consistency ratio is computed. The AHP reference below is cited as the related multi-criteria framework.
 
 Saaty T.L. (1980) *The Analytic Hierarchy Process*. McGraw-Hill, New York.
 

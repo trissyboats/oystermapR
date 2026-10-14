@@ -9,7 +9,7 @@ area_summary(
   cell_size_m = NULL,
   viable_area_m2 = 100,
   patch_analysis = TRUE,
-  classes = c("High", "Moderate", "Low", "Very Low", "Excluded"),
+  classes = c("High", "Moderate", "Low", "Very Low", "Excluded", "Insufficient data"),
   verbose = TRUE
 )
 }
@@ -34,7 +34,10 @@ analysis using \link[terra:terra-package]{terra::terra}. Patches are identified 
 suitability zones. Set to \code{FALSE} to skip (faster for large datasets).}
 
 \item{classes}{Character vector. Which suitability classes to include in
-the main summary. Default: all five classes.}
+the main summary. Default: all six classes, including
+\code{"Insufficient data"} -- locations that evidence weighting declined to
+classify. Those count toward the surveyed area but never toward the
+suitable area, and are excluded from patch analysis.}
 
 \item{verbose}{Logical. Print the summary table to the console (default \code{TRUE}).}
 }
@@ -79,11 +82,13 @@ result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
 # Automatic cell size estimation
 s <- area_summary(result)
 
-# Known grid spacing, 500 m2 minimum viable patch
-s2 <- area_summary(result, cell_size_m = 25, viable_area_m2 = 500)
-
 # Access the patch table and class summary
 s$patches
 s$class_summary
 s$total["suitable_area_m2"]
+
+\donttest{
+# Known grid spacing, 500 m2 minimum viable patch (slower patch analysis)
+s2 <- area_summary(result, cell_size_m = 25, viable_area_m2 = 500)
+}
 }

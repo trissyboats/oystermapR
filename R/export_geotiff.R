@@ -7,7 +7,7 @@
 #' The result looks like a fluid heat surface over your survey area rather than
 #' isolated point squares.
 #'
-#' The output GeoTIFF contains five bands:
+#' The output GeoTIFF contains seven bands:
 #' 1. **suitability** -- IDW-interpolated score \[0, 1\]. Use this for the heatmap.
 #' 2. **excluded_mask** -- 1 where a survey point was hard-excluded, 0 otherwise.
 #' 3. **n_observations** -- how many survey points fell within each raster cell
@@ -16,6 +16,16 @@
 #'    nearest survey point (use as a QGIS transparency mask to fade extrapolated areas).
 #' 5. **n_layers_scored** -- number of environmental variables that contributed to
 #'    the suitability score at each survey point (data completeness overlay).
+#' 6. **confidence** -- per-location confidence \[0, 1\] under evidence
+#'    weighting; `NA` throughout under rank weighting, which has no notion of it.
+#' 7. **insufficient_mask** -- 1 where the model declined to classify the
+#'    location (below `confidence_floor`), 0 otherwise. Those points are held
+#'    out of band 1 rather than asserting a suitability into the surface, and
+#'    [export_qml_style()] writes an overlay style for this band so they read as
+#'    a class in QGIS instead of as a hole in the map.
+#'
+#' Bands 3, 4, 6 and 7 are the ones that say how much to trust band 1. Band 1
+#' will interpolate a confident-looking score across water nobody surveyed.
 #'
 #' @param df A dataframe processed by [predict_oyster()], containing columns
 #'   `lat`, `lon`, `suitability`, `excluded`.
@@ -44,15 +54,16 @@
 #'   projected CRS (e.g. `"EPSG:32630"`) if your coordinates are in metres.
 #' @param overwrite Logical. Overwrite existing file (default `TRUE`).
 #'
-#' @return The output file path (invisibly). Also writes a `.qml` QGIS style
-#'   file alongside the `.tif` automatically.
+#' @return The output file path (invisibly). Also writes `.qml` QGIS style
+#'   files alongside the `.tif` automatically.
 #'
 #' @export
 #' @examples
 #' sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
 #' result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
 #' out_tif <- file.path(tempdir(), "oyster_heatmap.tif")
-#' export_geotiff(result, out_tif)
+#' # A coarse grid keeps the example fast; use the default resolution for real work.
+#' export_geotiff(result, out_tif, resolution = 0.001)
 #' file.exists(out_tif)
 export_geotiff <- function(df,
                            path,
@@ -85,6 +96,24 @@ export_geotiff <- function(df,
   # ---- Excluded points score 0 so exclusion zones appear in surface -----------
   df$suitability[df$excluded] <- 0
 
+  # ---- Locations the model declined to classify -------------------------------
+  # Under evidence weighting a location below the confidence floor is returned
+  # as "Insufficient data". It was surveyed, so it still counts in the density
+  # and distance bands, but it does not get to assert a suitability value into
+  # the interpolated surface. It is carried instead in its own mask band, so it
+  # reads in QGIS as a class rather than as a hole in the map.
+  insufficient <- rep(FALSE, nrow(df))
+  if ("suitability_class" %in% names(df)) {
+    insufficient <- !is.na(df$suitability_class) &
+      as.character(df$suitability_class) == "Insufficient data"
+  }
+  df$insufficient_int <- as.integer(insufficient)
+  if (any(insufficient)) {
+    cli::cli_inform(c(
+      "i" = "{sum(insufficient)} location{?s} classed {.val Insufficient data} held out of the interpolated surface and written to band 7."
+    ))
+  }
+
   # ---- Auto-calculate IDW search radius if not supplied -----------------------
   if (is.null(idw_max_dist)) {
     n_pts    <- nrow(df)
@@ -116,10 +145,11 @@ export_geotiff <- function(df,
   # ---- IDW interpolation \u2014 Band 1: suitability --------------------------------
   cli::cli_inform("Interpolating suitability surface (IDW power={idw_power}, radius={round(idw_max_dist,5)}\u00b0)...")
 
+  suit_src  <- df[!insufficient, , drop = FALSE]
   suit_vals <- .idw_interpolate(
-    pts_lon  = df$lon,
-    pts_lat  = df$lat,
-    values   = df$suitability,
+    pts_lon  = suit_src$lon,
+    pts_lat  = suit_src$lat,
+    values   = suit_src$suitability,
     rast     = r_template,
     power    = idw_power,
     max_dist = idw_max_dist
@@ -176,8 +206,31 @@ export_geotiff <- function(df,
     names(lyr_rast) <- "n_layers_scored"
   }
 
+  # ---- Band 6: Per-location confidence (evidence weighting only) -------------
+  # Share of the evidence weight observed at each location, or a measured
+  # confidence if one was supplied to predict_oyster(). NA throughout under
+  # rank weighting, which has no notion of it.
+  if ("confidence" %in% names(df)) {
+    pts_conf  <- terra::vect(df, geom = c("lon", "lat"), crs = crs)
+    conf_rast <- terra::rasterize(pts_conf, r_template,
+                                  field = "confidence",
+                                  fun   = min, na.rm = TRUE)  # min = least supported
+  } else {
+    conf_rast <- r_template
+    terra::values(conf_rast) <- NA_real_
+  }
+  names(conf_rast) <- "confidence"
+
+  # ---- Band 7: Insufficient-data mask ----------------------------------------
+  pts_ins  <- terra::vect(df, geom = c("lon", "lat"), crs = crs)
+  ins_rast <- terra::rasterize(pts_ins, r_template,
+                               field = "insufficient_int",
+                               fun   = max, na.rm = TRUE)
+  names(ins_rast) <- "insufficient_mask"
+
   # ---- Stack and write --------------------------------------------------------
-  stack <- c(suit_rast, excl_rast, cnt_rast, dist_rast, lyr_rast)
+  stack <- c(suit_rast, excl_rast, cnt_rast, dist_rast, lyr_rast,
+             conf_rast, ins_rast)
 
   terra::writeRaster(stack,
                      filename  = path,
@@ -344,7 +397,8 @@ export_geotiff <- function(df,
 #' sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
 #' result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
 #' out_tif <- file.path(tempdir(), "oyster_heatmap.tif")
-#' export_geotiff(result, out_tif)
+#' # A coarse grid keeps the example fast; use the default resolution for real work.
+#' export_geotiff(result, out_tif, resolution = 0.001, contours = FALSE)
 #' export_contours(out_tif)
 export_contours <- function(tif_path,
                             interval  = 0.1,
@@ -381,8 +435,16 @@ export_contours <- function(tif_path,
 #' The file is automatically applied when its name matches the `.tif` -- no
 #' manual styling needed in QGIS.
 #'
+#' A companion `<name>_insufficient.qml` is written at the same time. It styles
+#' band 7 -- the locations the model declined to classify under evidence
+#' weighting -- as a flat grey overlay, transparent everywhere else. Load the
+#' raster a second time in QGIS and drop that style on it to show unclassified
+#' ground as its own class sitting over the heatmap, rather than leaving the
+#' viewer to read an absence as a low score.
+#'
 #' @param tif_path Character. Path to the `.tif` from [export_geotiff()].
-#' @return The `.qml` file path (invisibly).
+#' @return The `.qml` file path (invisibly). The overlay style path is
+#'   returned as the attribute `"overlay"`.
 #' @export
 export_qml_style <- function(tif_path) {
 
@@ -412,5 +474,30 @@ export_qml_style <- function(tif_path) {
 </qgis>'
 
   writeLines(qml_content, qml_path)
+
+  # ---- Companion overlay: band 7, the locations left unclassified ------------
+  overlay_path <- sub("\\.tif$", "_insufficient.qml", tif_path, ignore.case = TRUE)
+
+  overlay_content <- '<?xml version="1.0" encoding="UTF-8"?>
+<qgis version="3.28" styleCategories="AllStyleCategories">
+  <pipe>
+    <rasterrenderer opacity="1" alphaBand="-1" band="7" type="singlebandpseudocolor" nodataColor="">
+      <rastershader>
+        <colorrampshader colorRampType="EXACT" clip="0" classificationMode="2" labelPrecision="0">
+          <item value="0" color="#ffffff" label="Classified"        alpha="0"/>
+          <item value="1" color="#9e9ea0" label="Insufficient data" alpha="200"/>
+        </colorrampshader>
+      </rastershader>
+    </rasterrenderer>
+    <brightnesscontrast brightness="0" contrast="0" gamma="1"/>
+    <huesaturation colorizeOn="0" saturation="0"/>
+  </pipe>
+  <blendMode>0</blendMode>
+  <layerGeometryType>2</layerGeometryType>
+</qgis>'
+
+  writeLines(overlay_content, overlay_path)
+
+  attr(qml_path, "overlay") <- overlay_path
   invisible(qml_path)
 }

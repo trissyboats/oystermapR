@@ -45,7 +45,10 @@
 #'   analysis using [terra]. Patches are identified within "High" and "Moderate"
 #'   suitability zones. Set to `FALSE` to skip (faster for large datasets).
 #' @param classes Character vector. Which suitability classes to include in
-#'   the main summary. Default: all five classes.
+#'   the main summary. Default: all six classes, including
+#'   `"Insufficient data"` -- locations that evidence weighting declined to
+#'   classify. Those count toward the surveyed area but never toward the
+#'   suitable area, and are excluded from patch analysis.
 #' @param verbose Logical. Print the summary table to the console (default `TRUE`).
 #'
 #' @return A named list with three elements:
@@ -72,19 +75,22 @@
 #' # Automatic cell size estimation
 #' s <- area_summary(result)
 #'
-#' # Known grid spacing, 500 m2 minimum viable patch
-#' s2 <- area_summary(result, cell_size_m = 25, viable_area_m2 = 500)
-#'
 #' # Access the patch table and class summary
 #' s$patches
 #' s$class_summary
 #' s$total["suitable_area_m2"]
+#'
+#' \donttest{
+#' # Known grid spacing, 500 m2 minimum viable patch (slower patch analysis)
+#' s2 <- area_summary(result, cell_size_m = 25, viable_area_m2 = 500)
+#' }
 area_summary <- function(result,
                          cell_size_m    = NULL,
                          viable_area_m2 = 100,
                          patch_analysis = TRUE,
                          classes        = c("High", "Moderate", "Low",
-                                            "Very Low", "Excluded"),
+                                            "Very Low", "Excluded",
+                                            "Insufficient data"),
                          verbose        = TRUE) {
 
   # ---- Validate ---------------------------------------------------------------
@@ -111,7 +117,13 @@ area_summary <- function(result,
   cell_area_m2 <- cell_size_m^2
 
   # ---- Class summary ----------------------------------------------------------
-  class_levels <- c("High", "Moderate", "Low", "Very Low", "Excluded")
+  # "Insufficient data" is a class in its own right, not a gap. It counts
+  # toward the surveyed area -- that ground was surveyed -- and never toward
+  # the suitable area, which stays High + Moderate. Leaving it out of the
+  # levels would silently drop those cells from the survey total and inflate
+  # the percentage suitable, which is the opposite of what the class is for.
+  class_levels <- c("High", "Moderate", "Low", "Very Low", "Excluded",
+                    "Insufficient data")
   result$suitability_class <- factor(result$suitability_class,
                                      levels = class_levels)
 
@@ -184,6 +196,13 @@ area_summary <- function(result,
       "i" = "Suitable area (High + Moderate): {format(round(suitable_area_m2), big.mark=',')} m2  ({round(suitable_area_m2/10000, 3)} ha)  [{round(total_vec['pct_suitable'], 1)}%]",
       "i" = "Cell size used: {round(cell_size_m, 1)} m  ({round(cell_area_m2)} m2 per point)"
     ))
+    n_insuf <- sum(!is.na(result$suitability_class) &
+                     result$suitability_class == "Insufficient data")
+    if (n_insuf > 0) {
+      cli::cli_inform(c(
+        "!" = "{n_insuf} location{?s} classed {.val Insufficient data}: counted in the surveyed area, excluded from the suitable area and from patch analysis."
+      ))
+    }
     cli::cli_text("")
     cli::cli_text("Per-class breakdown:")
     for (i in seq_len(nrow(cs))) {

@@ -16,7 +16,7 @@
 #' Compares the suitability scores from [predict_oyster()] against a
 #' presence/absence dataset to quantify how well the model discriminates
 #' between occupied and unoccupied habitat. Useful for assessing whether the
-#' AHP-weighted scoring produces ecologically defensible outputs before using
+#' rank-weighted scoring produces ecologically defensible outputs before using
 #' them for site selection.
 #'
 #' **Metrics computed:**
@@ -223,7 +223,7 @@ validate_against_records <- function(predicted,
       cli::cli_warn(c(
         "!" = "AUC < 0.6: model discriminates only marginally better than random.",
         "i" = paste0("Consider: (1) adding more scored environmental variables, ",
-                     "(2) adjusting AHP weights, (3) checking spatial alignment of records.")
+                     "(2) adjusting the variable weights, (3) checking spatial alignment of records.")
       ))
     } else if (auc >= 0.8) {
       cli::cli_inform(c("i" = "AUC >= 0.8: good discrimination."))

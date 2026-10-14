@@ -7,7 +7,7 @@
 #
 # MOTIVATION
 # ----------
-# The AHP-weighted scoring in oystermapR uses expert-elicited tolerance ranges
+# The rank-reciprocal weighted scoring in oystermapR uses expert-elicited tolerance ranges
 # (e.g. "temperature optimal 15\u201320\u00b0C"). These priors are well-grounded in the
 # literature but are inherently uncertain. When field survey data become
 # available \u2014 especially presence/absence records tied to measured environmental
@@ -73,7 +73,7 @@
 #' Update species tolerance parameters from field observations (Bayesian)
 #'
 #' @description
-#' Fits a Bayesian logistic regression linking AHP suitability scores to
+#' Fits a Bayesian logistic regression linking suitability scores to
 #' observed presence/absence, then updates the optimal-range tolerance
 #' parameters for one or more scored variables.
 #'
@@ -106,6 +106,16 @@
 #'   (default 0.20 = 20 percent). Wider = weaker / more data-driven prior.
 #' @param min_records Integer. Minimum matched records required (default 20).
 #' @param verbose Logical. Print progress and diagnostics (default TRUE).
+#' @param profile Optional character label for one population or lineage. When
+#'   given, the update is fitted from the species defaults and stored under
+#'   `"<species>::<profile>"` rather than under the species, so several
+#'   profiles of one species can coexist and the species-level posterior is
+#'   left alone. Used by [fit_lineages()]. Default `NULL`: behaviour unchanged.
+#' @param prior Optional named list overriding the prior for particular
+#'   variables, each element `list(optimal_min = c(mean, sd), optimal_max =
+#'   c(mean, sd))`. Variables not listed keep the default prior (current
+#'   bounds, SD = `prior_sd_fraction` of the range). Used to pass in a prior
+#'   borrowed from related lineages. Default `NULL`: behaviour unchanged.
 #'
 #' @return Invisibly: a named list with elements:
 #'   - `species`: species key
@@ -114,10 +124,15 @@
 #'   - `loglik_null`: log-likelihood of intercept-only model
 #'   - `loglik_fit`: log-likelihood at MAP/posterior mean
 #'   - `mcfadden_r2`: 1 - loglik_fit / loglik_null (pseudo-R^2)
-#'   - `updated_params`: named list of updated parameter values per variable
+#'   - `updated_params`: named list of updated parameter values per variable,
+#'     with posterior SDs, 95% intervals and `at_bound_omin` / `at_bound_omax`
+#'     flags (TRUE when the estimate sits on the search box, where the Laplace SD
+#'     is meaningless and the prior SD is reported instead)
 #'   - `posterior_sd`: named list of posterior SD per parameter (from Laplace/MCMC)
 #'   - `prior_params`: the parameter values before updating (for comparison)
 #'   - `convergence`: optim() convergence code (0 = success; MAP only)
+#'   - `tolerances`: the full updated tolerance object, ready to score with
+#'   - `profile`: the `profile` label, or `NULL`
 #'
 #' Side effect: updates the in-session cache accessed by [score_locations()].
 #'
@@ -168,12 +183,16 @@ update_species_tolerances <- function(records,
                                        n_warmup          = 1000L,
                                        prior_sd_fraction = 0.20,
                                        min_records       = 20L,
-                                       verbose           = TRUE) {
+                                       verbose           = TRUE,
+                                       profile           = NULL,
+                                       prior             = NULL) {
 
   method <- match.arg(method)
 
   # \u2500\u2500 Load species tolerances (from cache if already updated) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-  tols <- .get_cached_tolerances(species)
+  # A profile is fitted from the species defaults and cached under its own key.
+  cache_key <- if (is.null(profile)) species else paste0(species, "::", profile)
+  tols <- .get_cached_tolerances(cache_key)
   if (is.null(tols)) {
     tols <- tryCatch(
       get_species_tolerances(species),
@@ -289,12 +308,26 @@ update_species_tolerances <- function(records,
     # Prior SD = fraction of optimal range + some extra for boundary params
     rng   <- max(omax - omin, 1e-3)
     sd_v  <- rng * prior_sd_fraction
+    sd_omin <- sd_v
+    sd_omax <- sd_v
+
+    # A prior borrowed from related lineages replaces the default for this
+    # variable: its own means and its own spreads.
+    pv <- prior[[v]]
+    if (!is.null(pv)) {
+      omin    <- pv$optimal_min[1]
+      omax    <- pv$optimal_max[1]
+      sd_omin <- max(pv$optimal_min[2], 1e-3)
+      sd_omax <- max(pv$optimal_max[2], 1e-3)
+      if (!(omax > omin)) omax <- omin + 1e-3
+      rng     <- max(omax - omin, 1e-3)
+    }
 
     prior_params[[v]] <- list(
       optimal_min   = omin,
       optimal_max   = omax,
-      prior_sd_omin = sd_v,
-      prior_sd_omax = sd_v
+      prior_sd_omin = sd_omin,
+      prior_sd_omax = sd_omax
     )
 
     env_range   <- range(env_vals[[v]], na.rm = TRUE)
@@ -302,10 +335,10 @@ update_species_tolerances <- function(records,
 
     # Box constraints: can't move more than 2 SD from prior mean,
     # can't cross each other, must stay within observed data range
-    lo_omin <- max(omin - 3*sd_v, env_range[1] - rng * 0.5)
-    hi_omin <- omin + 3*sd_v
-    lo_omax <- omax - 3*sd_v
-    hi_omax <- min(omax + 3*sd_v, env_range[2] + rng * 0.5)
+    lo_omin <- max(omin - 3*sd_omin, env_range[1] - rng * 0.5)
+    hi_omin <- omin + 3*sd_omin
+    lo_omax <- omax - 3*sd_omax
+    hi_omax <- min(omax + 3*sd_omax, env_range[2] + rng * 0.5)
 
     theta_names  <- c(theta_names,  paste0(v, ".omin"), paste0(v, ".omax"))
     theta_init   <- c(theta_init,   omin,   omax)
@@ -316,40 +349,25 @@ update_species_tolerances <- function(records,
   n_theta <- length(theta_names)
 
   # \u2500\u2500 Log-posterior function \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  # Suitability of every record under a candidate theta. This is the deployed
+  # scorer, not a private copy: .score_numeric() for the curve, with shoulders
+  # scaled to the candidate optimum exactly as the returned tolerance object
+  # will carry them (.params_at), and variables weighted by 1/rank, normalised,
+  # as .score_row() does. Fitting one curve and deploying another would make the
+  # posterior optimal for a model nobody scores with.
+  .fit_S <- function(theta) .fit_suitability(theta, vars_present, tols, env_vals)
+
   .log_posterior <- function(theta) {
     alpha <- theta[1]
     beta  <- theta[2]
     if (beta <= 0) return(-Inf)
 
-    # Compute suitability score for each observation under current theta
-    S <- numeric(n_obs)
-    for (k in seq_len(n_obs)) {
-      s_sum <- 0; w_sum <- 0
-      for (vi in seq_along(vars_present)) {
-        v    <- vars_present[vi]
-        p    <- tols$scored[[v]]
-        omin <- theta[2 + 2*(vi-1) + 1]
-        omax <- theta[2 + 2*(vi-1) + 2]
-        if (omax <= omin) return(-Inf)
-
-        # Rebuild params with updated optimal bounds; shoulders scale proportionally
-        lo   <- p$poor_min %||% p$acceptable_min %||% (omin - (omax - omin))
-        hi   <- p$acceptable_max %||% p$poor_max %||% (omax + (omax - omin))
-        abs_hi <- p$absolute_max %||% hi
-
-        x <- env_vals[[v]][k]
-        if (is.na(x)) next
-        if (x < lo || x > abs_hi) { raw <- 0 }
-        else if (x >= omin && x <= omax) { raw <- 1 }
-        else if (x < omin) { raw <- max(0, (x - lo) / (omin - lo)) }
-        else { raw <- max(0, (abs_hi - x) / (abs_hi - omax)) }
-
-        wt    <- p$rank
-        s_sum <- s_sum + wt * raw
-        w_sum <- w_sum + wt
-      }
-      S[k] <- if (w_sum > 0) s_sum / w_sum else 0.5
+    for (vi in seq_along(vars_present)) {
+      if (theta[2 + 2*(vi-1) + 2] <= theta[2 + 2*(vi-1) + 1]) return(-Inf)
     }
+    # Suitability under the current theta, by the same curve and weights the
+    # deployed scorer uses (see .fit_S).
+    S <- .fit_S(theta)
 
     # Likelihood: Y_i ~ Bernoulli(logistic(alpha + beta * S_i))
     linpred <- alpha + beta * S
@@ -429,12 +447,12 @@ update_species_tolerances <- function(records,
     )
     if (!is.null(hess)) {
       cov_mat <- tryCatch(solve(hess), error = function(e) NULL)
-      if (!is.null(cov_mat) && all(diag(cov_mat) > 0)) {
+      if (!is.null(cov_mat) && !anyNA(diag(cov_mat)) && all(diag(cov_mat) > 0)) {
         posterior_sd_map <- sqrt(diag(cov_mat))
       } else {
         # Fallback: diagonal approximation
         diag_h <- diag(hess)
-        diag_h[diag_h <= 0] <- 1  # guard against non-positive definite
+        diag_h[!is.finite(diag_h) | diag_h <= 0] <- 1  # guard against non-positive definite / non-finite
         posterior_sd_map <- 1 / sqrt(diag_h)
         cli::cli_warn("Hessian was not positive-definite; using diagonal approximation.")
       }
@@ -442,6 +460,33 @@ update_species_tolerances <- function(records,
   }
 
   # \u2500\u2500 Optional MCMC \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  # sqrt(diag(cov)) drops the parameter names, so the by-name lookups below
+  # returned NA and every posterior SD and credible interval came back NA
+  # whenever the Hessian was fine.
+  if (length(posterior_sd_map) == n_theta) names(posterior_sd_map) <- theta_names
+
+  # A MAP estimate sitting on the optimiser's box bound has no meaningful
+  # Laplace curvature (one profile reported an SD of 0.07). Report the prior SD
+  # for such parameters -- the honest "the data did not pin this down" -- and
+  # flag them.
+  at_bound <- stats::setNames(rep(FALSE, n_theta), theta_names)
+  if (method == "map") {
+    span <- pmax(upper_bounds - lower_bounds, 1e-9)
+    at_bound <- stats::setNames(
+      (theta_map - lower_bounds) < 1e-3 * span | (upper_bounds - theta_map) < 1e-3 * span,
+      theta_names)
+    for (v in vars_present) {
+      for (par in c("omin", "omax")) {
+        nm <- paste0(v, ".", par)
+        if (isTRUE(at_bound[[nm]])) {
+          posterior_sd_map[[nm]] <- prior_params[[v]][[paste0("prior_sd_", par)]]
+          if (verbose) cli::cli_warn(
+            "{v} {par} sits on the optimiser's bound; its Laplace SD is not meaningful, so the prior SD is reported.")
+        }
+      }
+    }
+  }
+
   mcmc_samples <- NULL
   if (method == "mcmc") {
     if (verbose) cli::cli_inform("Running RWMH MCMC ({n_iter} iterations, {n_warmup} warm-up)...")
@@ -490,7 +535,9 @@ update_species_tolerances <- function(records,
       acceptable_min = if (!is.null(p$acceptable_min)) round(new_omin - (p$optimal_min - p$acceptable_min) * scale, 4) else NULL,
       acceptable_max = if (!is.null(p$acceptable_max)) round(new_omax + (p$acceptable_max - p$optimal_max) * scale, 4) else NULL,
       poor_max      = if (!is.null(p$poor_max)) round(new_omax + (p$poor_max - p$optimal_max) * scale, 4) else NULL,
-      absolute_max  = p$absolute_max  # hard limits stay fixed
+      absolute_max  = p$absolute_max,  # hard limits stay fixed
+      at_bound_omin = isTRUE(at_bound[[paste0(v, ".omin")]]),
+      at_bound_omax = isTRUE(at_bound[[paste0(v, ".omax")]])
     )
   }
 
@@ -500,30 +547,7 @@ update_species_tolerances <- function(records,
   loglik_null <- sum(obs * log(p_null + 1e-10) + (1-obs) * log(1 - p_null + 1e-10))
 
   # Fitted model at MAP
-  linpred_fit <- theta_map["alpha"] + theta_map["beta"] *
-    sapply(seq_len(n_obs), function(k) {
-      s_sum <- 0; w_sum <- 0
-      for (vi in seq_along(vars_present)) {
-        v    <- vars_present[vi]
-        up   <- updated_params[[v]]
-        p    <- tols$scored[[v]]
-        omin <- up$optimal_min
-        omax <- up$optimal_max
-        lo   <- up$poor_min %||% up$acceptable_min %||% (omin - (omax - omin))
-        hi   <- up$acceptable_max %||% up$poor_max %||% (omax + (omax - omin))
-        abs_hi <- up$absolute_max %||% hi
-        x    <- env_vals[[v]][k]
-        if (is.na(x)) next
-        if (x < lo || x > abs_hi)  { raw <- 0 }
-        else if (x >= omin && x <= omax) { raw <- 1 }
-        else if (x < omin)         { raw <- max(0, (x - lo) / (omin - lo)) }
-        else                       { raw <- max(0, (abs_hi - x) / (abs_hi - omax)) }
-        wt    <- p$rank
-        s_sum <- s_sum + wt * raw
-        w_sum <- w_sum + wt
-      }
-      if (w_sum > 0) s_sum / w_sum else 0.5
-    })
+  linpred_fit <- theta_map["alpha"] + theta_map["beta"] * .fit_S(theta_map)
 
   p_fit      <- 1 / (1 + exp(-linpred_fit))
   loglik_fit <- sum(obs * log(p_fit + 1e-10) + (1-obs) * log(1 - p_fit + 1e-10))
@@ -563,7 +587,7 @@ update_species_tolerances <- function(records,
     }
   }
   # Sequential update: store updated tols as new prior for next call
-  .oystermapR_env$posterior_cache[[species]] <- updated_tols
+  .oystermapR_env$posterior_cache[[cache_key]] <- updated_tols
 
   # Return result
   result_out <- list(
@@ -584,7 +608,9 @@ update_species_tolerances <- function(records,
     )),
     convergence   = convergence_code,
     mcmc_samples  = mcmc_samples,
-    theta_map     = theta_map
+    theta_map     = theta_map,
+    tolerances    = updated_tols,
+    profile       = profile
   )
   invisible(result_out)
 }
@@ -918,4 +944,49 @@ load_tolerance_update <- function(species = "all",
     }
   }
   tols
+}
+
+
+#' Tolerance parameters at a candidate optimum, as the update carries them
+#'
+#' Shoulders (`poor_*`, `acceptable_*`) move with the optimum in proportion to
+#' the change in its width; hard limits (`absolute_max`) stay put. This is the
+#' single definition used by the likelihood and by the tolerance object the
+#' update returns, so what is fitted is what is deployed.
+#' @keywords internal
+.params_at <- function(p, omin, omax) {
+  old_min <- p$optimal_min
+  old_max <- p$optimal_max
+  scale   <- max(omax - omin, 1e-3) / max(old_max - old_min, 1e-3)
+  if (!is.null(p$poor_min))       p$poor_min       <- omin - (old_min - p$poor_min) * scale
+  if (!is.null(p$acceptable_min)) p$acceptable_min <- omin - (old_min - p$acceptable_min) * scale
+  if (!is.null(p$acceptable_max)) p$acceptable_max <- omax + (p$acceptable_max - old_max) * scale
+  if (!is.null(p$poor_max))       p$poor_max       <- omax + (p$poor_max - old_max) * scale
+  p$optimal_min <- omin
+  p$optimal_max <- omax
+  p
+}
+
+
+#' Suitability of records under a candidate theta, by the deployed scorer
+#'
+#' `.score_numeric()` for the curve with shoulders scaled by [.params_at()],
+#' and variables weighted by 1/rank, normalised -- the same as `.score_row()`
+#' over the same variables. `theta` is `c(alpha, beta, v1.omin, v1.omax, ...)`
+#' in the order of `vars`.
+#' @keywords internal
+.fit_suitability <- function(theta, vars, tols, env_vals) {
+  n   <- length(env_vals[[1]])
+  num <- numeric(n); den <- numeric(n)
+  for (vi in seq_along(vars)) {
+    v   <- vars[vi]
+    p   <- tols$scored[[v]]
+    pp  <- .params_at(p, theta[2 + 2*(vi-1) + 1], theta[2 + 2*(vi-1) + 2])
+    raw <- vapply(env_vals[[v]], .score_numeric, numeric(1), params = pp)
+    ok  <- !is.na(raw)
+    w   <- 1 / p$rank
+    num[ok] <- num[ok] + w * raw[ok]
+    den[ok] <- den[ok] + w
+  }
+  ifelse(den > 0, num / den, 0.5)
 }

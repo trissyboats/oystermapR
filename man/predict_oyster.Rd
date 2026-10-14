@@ -10,7 +10,15 @@ predict_oyster(
   output_geotiff = FALSE,
   resolution = 2e-04,
   contours = TRUE,
-  verbose = FALSE
+  verbose = FALSE,
+  weighting = c("rank", "evidence"),
+  reliability = NULL,
+  confidence = NULL,
+  confidence_floor = 0.5,
+  assigned = NULL,
+  aliases = NULL,
+  observed = NULL,
+  attempted_failed = NULL
 )
 }
 \arguments{
@@ -47,6 +55,58 @@ and embedded in the GeoTIFF export. Ignored when \code{output_geotiff = FALSE}.}
 
 \item{verbose}{Logical. If \code{TRUE}, prints a per-variable scoring summary
 after processing (default \code{FALSE}).}
+
+\item{weighting}{Character. How the per-variable scores are combined.
+\code{"rank"} (default) is the 1.5.0 behaviour: weights are \code{1 / rank},
+normalised over the variables present in the data. \code{"evidence"} weights
+each variable by \code{prior * reliability * spread} (see
+\code{\link[=evidence_weights]{evidence_weights()}}) and attaches the coverage of the species' evidence
+base to the result. The default is unchanged, so existing calls return
+exactly what they returned in 1.5.0.
+
+Note what renormalisation costs you under \code{"rank"}: a survey measuring
+four of a species' seventeen scored variables still returns a confident
+number on [0, 1], because the weights are renormalised over whatever
+happens to be present. Absence becomes indistinguishable from
+irrelevance. \code{"evidence"} is the mode that says so.}
+
+\item{reliability}{Named numeric vector, one entry per scored layer,
+giving the correlation between two independent estimates of that layer --
+from \code{\link[=reliability_from_replicates]{reliability_from_replicates()}} where the survey has repeat
+coverage, or \code{\link[=reliability_from_perturbation]{reliability_from_perturbation()}} where it does not.
+Required when \code{weighting = "evidence"}. A layer with no measured
+reliability receives no weight rather than a default one.}
+
+\item{confidence}{Optional numeric vector of per-location confidence on
+[0, 1], one value per row, typically from \code{\link[=confidence_score]{confidence_score()}}.
+When \code{NULL} (the default) and \code{weighting = "evidence"}, confidence is
+taken to be the share of the evidence weight actually observed at that
+location -- which falls straight out of the weighting and needs no
+further assumption. Either way a \code{confidence} column is returned.}
+
+\item{confidence_floor}{Numeric, default \code{0.5}. Locations below this are
+classified \code{"Insufficient data"} instead of being given a suitability
+class. The continuous score is still returned for them. Only used when
+\code{weighting = "evidence"}.}
+
+\item{assigned}{Optional named list for layers with no counterpart in the
+published tolerance profile, each element a list with \code{rank} and
+\code{rationale}. Passed to \code{\link[=evidence_weights]{evidence_weights()}}. Assigned layers are flagged
+in the weight table and do not count toward coverage.}
+
+\item{aliases}{Optional named character vector mapping score column names
+to tolerance-spec variable names, e.g.
+\code{c(hardness = "substrate_hardness")}.}
+
+\item{observed}{Optional character vector of tolerance-spec variables the
+survey observed, used for coverage. Defaults to the published layers
+found in the data -- pass it explicitly when a variable was measured but
+could not be scored.}
+
+\item{attempted_failed}{Optional character vector of variables that were
+instrumented but returned unusable data. Reported separately and used for
+\code{coverage_if_recovered}, which prices an instrument failure in units of
+the species' evidence base.}
 }
 \value{
 A dataframe (invisibly) with all original columns plus:
@@ -58,6 +118,18 @@ A dataframe (invisibly) with all original columns plus:
 \item \strong{\code{suitability_class}}: factor, one of "High", "Moderate", "Low",
 "Very Low", "Excluded".
 \item \strong{\verb{score_<variable>}}: per-variable component scores.
+}
+
+With \code{weighting = "evidence"} the result carries, in addition:
+\itemize{
+\item \strong{\code{suitability_rank}} / \strong{\code{suitability_class_rank}}: what rank
+weighting would have returned, kept for comparison.
+\item \strong{\code{confidence}}: per-location confidence [0, 1].
+\item \strong{\code{suitability_class}} may take the further value
+\code{"Insufficient data"} for locations below \code{confidence_floor}.
+\item attributes \code{"evidence_weights"} and \code{"evidence_coverage"}, holding the
+weight derivation and the coverage ledger. These are what belongs in a
+methods section; render them with \code{\link[=weight_table_md]{weight_table_md()}}.
 }
 
 If \code{output_geotiff} is set, a GeoTIFF is written to disk and its path is
@@ -104,6 +176,16 @@ result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
 table(result$suitability_class)
 
 \dontrun{
+# Evidence weighting: reliability measured per layer, not assumed.
+rel <- c(depth = 0.930, slope = 0.712, substrate_hardness = 0.402)
+ev  <- predict_oyster(sample_csv, "ostrea_edulis",
+                      weighting   = "evidence",
+                      reliability = rel)
+attr(ev, "evidence_coverage")
+cat(weight_table_md(ev), sep = "\n")
+}
+
+\dontrun{
 # Full pipeline from raw sensor files
 adcp_f  <- system.file("extdata", "example_bay_adcp.csv",      package = "oystermapR")
 bathy_f <- system.file("extdata", "example_bay_soundings.xyz", package = "oystermapR")
@@ -114,4 +196,8 @@ ctd    <- read_generic_csv(ctd_f,     verbose = FALSE)
 survey <- merge_sensor_data(adcp = adcp, bathy = bathy, ctd = ctd)
 predict_oyster(survey, "ostrea_edulis", verbose = FALSE)
 }
+}
+\seealso{
+\code{\link[=evidence_weights]{evidence_weights()}}, \code{\link[=evidence_coverage]{evidence_coverage()}},
+\code{\link[=confidence_score]{confidence_score()}}, \code{\link[=weight_table_md]{weight_table_md()}}
 }

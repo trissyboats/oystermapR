@@ -14,7 +14,9 @@ update_species_tolerances(
   n_warmup = 1000L,
   prior_sd_fraction = 0.2,
   min_records = 20L,
-  verbose = TRUE
+  verbose = TRUE,
+  profile = NULL,
+  prior = NULL
 )
 }
 \arguments{
@@ -44,6 +46,17 @@ Defaults to all numeric scored variables present in \code{records}.}
 \item{min_records}{Integer. Minimum matched records required (default 20).}
 
 \item{verbose}{Logical. Print progress and diagnostics (default TRUE).}
+
+\item{profile}{Optional character label for one population or lineage. When
+given, the update is fitted from the species defaults and stored under
+\code{"<species>::<profile>"} rather than under the species, so several
+profiles of one species can coexist and the species-level posterior is
+left alone. Used by \code{\link[=fit_lineages]{fit_lineages()}}. Default \code{NULL}: behaviour unchanged.}
+
+\item{prior}{Optional named list overriding the prior for particular
+variables, each element \code{list(optimal_min = c(mean, sd), optimal_max = c(mean, sd))}. Variables not listed keep the default prior (current
+bounds, SD = \code{prior_sd_fraction} of the range). Used to pass in a prior
+borrowed from related lineages. Default \code{NULL}: behaviour unchanged.}
 }
 \value{
 Invisibly: a named list with elements:
@@ -54,16 +67,21 @@ Invisibly: a named list with elements:
 \item \code{loglik_null}: log-likelihood of intercept-only model
 \item \code{loglik_fit}: log-likelihood at MAP/posterior mean
 \item \code{mcfadden_r2}: 1 - loglik_fit / loglik_null (pseudo-R^2)
-\item \code{updated_params}: named list of updated parameter values per variable
+\item \code{updated_params}: named list of updated parameter values per variable,
+with posterior SDs, 95\% intervals and \code{at_bound_omin} / \code{at_bound_omax}
+flags (TRUE when the estimate sits on the search box, where the Laplace SD
+is meaningless and the prior SD is reported instead)
 \item \code{posterior_sd}: named list of posterior SD per parameter (from Laplace/MCMC)
 \item \code{prior_params}: the parameter values before updating (for comparison)
 \item \code{convergence}: optim() convergence code (0 = success; MAP only)
+\item \code{tolerances}: the full updated tolerance object, ready to score with
+\item \code{profile}: the \code{profile} label, or \code{NULL}
 }
 
 Side effect: updates the in-session cache accessed by \code{\link[=score_locations]{score_locations()}}.
 }
 \description{
-Fits a Bayesian logistic regression linking AHP suitability scores to
+Fits a Bayesian logistic regression linking suitability scores to
 observed presence/absence, then updates the optimal-range tolerance
 parameters for one or more scored variables.
 

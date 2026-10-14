@@ -6,7 +6,7 @@
 \alias{oystermapR-package}
 \title{oystermapR: Predict and Map Oyster Growth Suitability}
 \description{
-\code{oystermapR} provides a rule-based, AHP-weighted suitability scoring
+\code{oystermapR} provides a rule-based, rank-reciprocal weighted suitability scoring
 pipeline for predicting where conditions are most likely to support oyster
 growth. Users supply a tabular dataset of environmental and physical
 measurements (collected in the field or from remote sensing), specify a

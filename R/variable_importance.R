@@ -175,7 +175,7 @@ permutation_importance <- function(predicted,
 
   # \u2500\u2500 Permutation loop \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   # Weights for each score_col in the final suitability (from predict_oyster).
-  # We need to know the AHP weight of each variable. Try to recover from
+  # We need to know the weight of each variable. Try to recover from
   # weight_ columns; if absent, assume equal weights.
   weight_cols <- gsub("^score_", "weight_", score_cols)
   has_weights <- all(weight_cols %in% names(predicted))

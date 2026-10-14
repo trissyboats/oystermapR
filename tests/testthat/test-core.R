@@ -154,3 +154,68 @@ test_that("predict_oyster returns correct suitability classes", {
   valid_classes <- c("High", "Moderate", "Low", "Very Low", "Excluded")
   expect_true(all(result$suitability_class %in% valid_classes))
 })
+
+
+# ---- PDF text is safe in any locale -----------------------------------------------
+
+test_that(".g() leaves UTF-8 text alone and gives ASCII stand-ins otherwise", {
+  txt <- "Ostrea edulis — Flat · 0.45–0.70 ≥ 8 °C"
+  expect_identical(.g(txt, utf8 = TRUE), txt)
+  out <- .g(txt, utf8 = FALSE)
+  expect_true(all(utf8ToInt(out) < 128))
+  expect_identical(out, "Ostrea edulis - Flat | 0.45-0.70 >= 8  degC")
+  expect_true(grepl("?", .g("café", utf8 = FALSE), fixed = TRUE))
+})
+
+test_that("generate_summary_pdf() works in whatever locale the session has", {
+  skip_if_not_installed("grid")
+  res <- suppressMessages(suppressWarnings(
+    predict_oyster(system.file("extdata", "sample_survey.csv", package = "oystermapR"),
+                   "ostrea_edulis", verbose = FALSE)))
+  out <- tempfile(fileext = ".pdf")
+  suppressMessages(generate_summary_pdf(res, out, title = "Kames Bay — Spring",
+                                        author = "T. Tucker", open = FALSE))
+  expect_true(file.exists(out) && file.size(out) > 1000)
+})
+
+
+# ---- exclusion reasons and missing seasons ------------------------------------------------
+
+test_that("each excluded row's reason names its own value, not every flagged row's", {
+  tl <- get_species_tolerances("ostrea_edulis")
+  df <- data.frame(lat = 51, lon = -4, temperature = c(2, 3, 15, 30),
+                   dissolved_oxygen = c(0.5, 1, 8, 8), salinity = 33)
+  out <- suppressMessages(suppressWarnings(check_exclusions(df, tl)))
+  expect_match(out$exclusion_reason[1], "temp_too_cold \\(2\\.0 < ")
+  expect_false(grepl("3\\.0", out$exclusion_reason[1]))
+  expect_match(out$exclusion_reason[2], "temp_too_cold \\(3\\.0 < ")
+  expect_false(grepl("2\\.0 <", out$exclusion_reason[2]))
+  expect_match(out$exclusion_reason[1], "hypoxia \\(0\\.50 < ")
+  expect_match(out$exclusion_reason[2], "hypoxia \\(1\\.00 < ")
+  expect_equal(lengths(regmatches(out$exclusion_reason[1], gregexpr("temp_too_cold", out$exclusion_reason[1]))), 1L)
+  expect_true(is.na(out$exclusion_reason[3]))
+  expect_match(out$exclusion_reason[4], "temp_too_hot \\(30\\.0 > ")
+})
+
+test_that("an unknown season means no seasonal exclusion, for every species", {
+  # Tropical species have a winter minimum above temperate temperatures; with no
+  # date column season is NA, and NA & TRUE used to crash the update.
+  d <- data.frame(lat = 51, lon = -4, temperature = c(12, 14, 16, 17),
+                  salinity = 33, dissolved_oxygen = 7, season = NA_character_)
+  for (sp in c("crassostrea_iredalei", "saccostrea_cucullata")) {
+    tl <- get_species_tolerances(sp)
+    out <- suppressMessages(suppressWarnings(check_exclusions(d, tl)))
+    expect_false(anyNA(out$excluded), info = sp)
+    expect_length(out$excluded, nrow(d))
+  }
+})
+
+test_that("every species can be scored on an ordinary survey", {
+  d <- utils::read.csv(system.file("extdata", "sample_survey.csv", package = "oystermapR"))
+  d$date <- NULL                                   # no date: seasonal checks skipped
+  for (sp in names(.species_tolerances)) {
+    res <- tryCatch(suppressMessages(suppressWarnings(predict_oyster(d, sp, verbose = FALSE))),
+                    error = function(e) e)
+    expect_false(inherits(res, "error"), info = paste(sp, if (inherits(res, "error")) conditionMessage(res)))
+  }
+})

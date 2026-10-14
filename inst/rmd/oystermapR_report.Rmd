@@ -930,7 +930,7 @@ if (!is.null(validation)) {
   } else if (auc >= 0.6) {
     paste0("Moderate discrimination (AUC = ", auc, "). The model has useful but imperfect predictive skill. Consider adding more environmental variables.")
   } else {
-    paste0("Poor discrimination (AUC = ", auc, "). Model performance is near-random. Review variable coverage and AHP weights.")
+    paste0("Poor discrimination (AUC = ", auc, "). Model performance is near-random. Review variable coverage and the variable weights.")
   }
 
   cat(paste0('<div class="', interp_class, '"><p>', interp_text, '</p></div>\n'))

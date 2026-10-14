@@ -1,0 +1,672 @@
+---
+title: "Complete survey workflow: Example Bay"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Complete survey workflow: Example Bay}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse  = TRUE,
+  comment   = "#>",
+  fig.width = 7,
+  fig.height = 4,
+  eval      = FALSE
+)
+```
+
+## Overview
+
+This vignette walks through a complete oystermapR workflow using a simulated
+survey of **Example Bay** — a fictional sheltered coastal inlet with realistic
+physical characteristics. The full pipeline is covered:
+
+1. Loading acoustic Doppler (ADCP) current data
+2. Loading bathymetric soundings
+3. Loading CTD water-quality data (temperature, salinity, chlorophyll_a, pH, alkalinity)
+4. Merging all sensor datasets onto a common grid
+5. Running quality control
+6. Predicting suitability for *Ostrea edulis* (European Flat Oyster)
+7. Scoring wave exposure and HAB risk
+8. Exporting a seven-band GeoTIFF for QGIS
+9. pH and aragonite saturation scoring
+10. Variable impact diagnostic
+11. Fine-scale habitat area analysis
+12. Tolerance curve visualisation
+13. Evidence weighting, and what it changes
+
+The example data files (`example_bay_adcp.csv`, `example_bay_soundings.xyz`,
+and `example_bay_ctd.csv`) are included in the package and represent a
+simulated mid-summer survey.
+
+```{r library}
+library(oystermapR)
+```
+
+---
+
+## Survey context
+
+Example Bay is a sheltered inlet approximately 6 km × 4 km in extent, with
+depths ranging from 2 m at the shoreline to around 22 m in the central channel.
+A six-hour ADCP transect was run on a flood tide during June. Bathymetric
+soundings were collected concurrently using a single-beam echosounder.
+
+The target species is *Ostrea edulis*, the European Flat Oyster, whose optimal
+conditions include: depths of 1–20 m, current speeds of 0.05–0.4 m/s,
+temperatures of 5–25°C, and salinities of 25–35 PSU.
+
+---
+
+## Step 1: Load ADCP data
+
+`read_nortek_adcp()` reads the Nortek Signature 500 merged CSV export. It
+auto-detects velocity bins, spatially averages ensembles onto a grid, and
+derives bed shear stress from the near-bed velocity profile. The `spatial_res`
+argument controls the decimal places used for lat/lon grid binning; `2` gives
+approximately 1 km cells, suitable for a bay-scale survey.
+
+```{r load-adcp}
+adcp_file <- system.file("extdata", "example_bay_adcp.csv", package = "oystermapR")
+
+adcp <- read_nortek_adcp(
+  file        = adcp_file,
+  spatial_res = 2,
+  verbose     = TRUE
+)
+
+head(adcp[, c("lat", "lon", "current_velocity", "shear_stress")])
+```
+
+The output contains one row per grid cell. `current_velocity` is the mean
+near-bed flow magnitude; `shear_stress` is the estimated bed shear stress
+in N/m², used by `predict_oyster()` for suspension-feeder scoring.
+
+---
+
+## Step 2: Load bathymetric soundings
+
+`read_soundings_xyz()` reads a space-delimited XYZ point cloud, grids and
+averages the depths, and derives slope and rugosity via finite differences.
+
+```{r load-bathy}
+xyz_file <- system.file("extdata", "example_bay_soundings.xyz", package = "oystermapR")
+
+bathy <- read_soundings_xyz(
+  file          = xyz_file,
+  spatial_res   = 2,
+  min_soundings = 5,
+  verbose       = TRUE
+)
+
+head(bathy[, c("lat", "lon", "depth", "slope", "roughness")])
+```
+
+`slope` is the maximum downslope gradient in degrees at each grid cell; values
+above ~15° typically exclude oyster settlement in the scoring model. `roughness`
+is a dimensionless rugosity index (1.0 = flat; higher = more complex substrate).
+
+---
+
+## Step 3: Load CTD water-quality data
+
+The ADCP and echosounder provide hydrodynamic and bathymetric variables, but
+`predict_oyster()` can also use water-quality data when available. The Example
+Bay survey included a 5 × 4 grid of CTD casts recording temperature, salinity,
+chlorophyll_a, **pH**, and **total alkalinity**, stored as a plain CSV.
+
+`read_generic_csv()` handles any tabular sensor export with flexible column
+matching. Column names are recognised automatically when they follow standard
+conventions (`lat`/`lon`, `temperature`, `salinity`, `chlorophyll_a`, `ph`,
+`alkalinity`). For instruments that export non-standard headers, supply an
+explicit `col_map`:
+
+```r
+# Example with non-standard headers from a YSI EXO sonde export:
+ctd <- read_generic_csv(
+  "ysi_export.csv",
+  col_map = c(lat = "GPS_Lat", lon = "GPS_Lon",
+              temperature = "Temp_C", salinity = "Sal_PSU",
+              ph = "pH_total", alkalinity = "TA_umolkg")
+)
+```
+
+For Example Bay the column names match the oystermapR conventions directly:
+
+```{r load-ctd}
+ctd_file <- system.file("extdata", "example_bay_ctd.csv", package = "oystermapR")
+
+ctd <- read_generic_csv(
+  file        = ctd_file,
+  spatial_res = 2,
+  verbose     = TRUE
+)
+
+head(ctd[, c("lat", "lon", "temperature", "salinity", "chlorophyll_a",
+             "ph", "alkalinity")])
+```
+
+Spatially averaging at `spatial_res = 2` collapses the four replicate casts
+per station to a single value per ~1 km grid cell. The `ph` and `alkalinity`
+columns will be used in Step 9 for aragonite saturation scoring.
+
+---
+
+## Step 4: Merge all sensor datasets
+
+`merge_sensor_data()` performs a full outer join of any number of sensor
+dataframes on rounded lat/lon grid keys. Cells present in only one source are
+retained with `NA` for the missing variables, so no data is discarded. All
+three layers — ADCP, bathymetry, and CTD — are combined in a single call:
+
+```{r merge}
+survey <- merge_sensor_data(adcp = adcp, bathy = bathy, ctd = ctd)
+
+cat("Merged survey:", nrow(survey), "grid cells\n")
+cat("Columns:", paste(names(survey), collapse = ", "), "\n")
+```
+
+A `substrate_hardness` column would typically come from a sidescan mosaic
+processed via `read_sonar_tif()`. Here we add a representative value for a
+mixed shell-gravel substrate, typical of productive inshore oyster ground.
+
+```{r add-substrate}
+set.seed(101)
+n <- nrow(survey)
+# 0 = soft mud, 1 = hard rock; 0.3--0.7 = shell/gravel mix
+survey$substrate_hardness <- round(runif(n, 0.30, 0.70), 2)
+```
+
+---
+
+## Step 5: Quality control
+
+`qc_survey_data()` applies three complementary checks to every numeric column:
+
+- **Range check** — values outside physically plausible bounds for that
+  variable (species-agnostic; e.g. salinity above 42 PSU) are flagged
+  `"range_fail"`.
+- **Statistical outlier** — values beyond `iqr_k` × IQR from the median are
+  flagged `"outlier"` (default k = 3, Tukey's outer fence).
+- **Cross-variable sanity** — physically implausible combinations (e.g.
+  dissolved oxygen above 20 mg/L with temperature below 5°C) are flagged.
+
+Setting `apply_flags = TRUE` replaces flagged values with `NA` so they are
+silently skipped downstream rather than causing erroneous scores.
+
+```{r qc}
+survey_clean <- qc_survey_data(
+  df          = survey,
+  apply_flags = TRUE,
+  verbose     = TRUE
+)
+
+# Count any flags raised across all columns
+flag_cols <- grep("^qc_flag_", names(survey_clean), value = TRUE)
+n_flagged <- sum(sapply(survey_clean[flag_cols], function(x) sum(!is.na(x) & x != "pass")))
+cat("Total flagged values replaced with NA:", n_flagged, "\n")
+```
+
+The QC step is non-destructive by default (`apply_flags = FALSE`) — it adds
+`qc_flag_<variable>` columns so you can inspect which cells were problematic
+before deciding whether to exclude them.
+
+---
+
+## Step 6: Predict suitability
+
+`predict_oyster()` applies rank-reciprocal weighted scoring rules to each available
+variable, combines them into a suitability score in [0, 1], and classifies
+locations as High (>= 0.70) / Moderate (>= 0.45) / Low (>= 0.20) / Very Low /
+Excluded.
+
+By default the weights are `1 / rank`, normalised **over the variables present
+in your data**. That is worth holding on to: supply four layers and those four
+carry the whole weight between them, so absence and irrelevance look identical
+in the output. Step 13 covers `weighting = "evidence"`, which is the mode that
+says so. Everything up to that point uses the default.
+
+```{r predict, warning = FALSE}
+result <- predict_oyster(
+  data    = survey_clean,
+  species = "ostrea_edulis",
+  verbose = TRUE
+)
+
+# Summary of suitability classes
+table(result$suitability_class)
+```
+
+```{r suitability-summary}
+# Mean score and range
+cat(sprintf(
+  "Suitability: mean = %.2f, range = %.2f -- %.2f\n",
+  mean(result$suitability, na.rm = TRUE),
+  min(result$suitability,  na.rm = TRUE),
+  max(result$suitability,  na.rm = TRUE)
+))
+```
+
+The result dataframe retains all input columns plus `suitability`,
+`suitability_class`, `data_completeness` (fraction of variables scored),
+`n_layers_scored` (integer count of variables contributing at each point),
+and per-variable component scores (`score_depth`, `score_current_velocity`,
+`score_ph`, `score_omega_aragonite`, etc.).
+
+```{r layers-scored}
+# Points with fewer scored variables may have less reliable scores
+summary(result$n_layers_scored)
+table(result$n_layers_scored)
+```
+
+---
+
+## Step 7: Risk and disturbance scoring
+
+oystermapR includes optional risk modules that can be appended to the result.
+Here we add wave exposure (derived from the current speed data and fetch
+geometry) and a simple HAB risk score.
+
+```{r risk, warning = FALSE}
+# Wave exposure: uses current_velocity and depth as proxies for fetch exposure
+result <- score_wave_exposure(result, verbose = FALSE)
+
+# HAB risk: without live ICES data, scores from chlorophyll_a alone
+result <- score_hab_risk(result, verbose = FALSE)
+
+cat("Wave exposure range:", round(range(result$wave_exposure, na.rm=TRUE), 3), "\n")
+cat("HAB risk range:     ", round(range(result$hab_risk,      na.rm=TRUE), 3), "\n")
+```
+
+---
+
+## Step 8: Export GeoTIFF for QGIS
+
+`export_geotiff()` interpolates the suitability scores onto a regular raster
+and writes a seven-band GeoTIFF. `export_qml_style()` writes a matching QGIS
+colour-ramp style file (`.qml`) so the layer renders immediately with the
+standard oystermapR colour scheme, plus a companion
+`<name>_insufficient.qml` overlay style for band 7.
+
+```{r export, eval = FALSE}
+# Write seven-band GeoTIFF and companion QGIS style files
+export_geotiff(
+  df         = result,
+  path       = "example_bay_suitability.tif",
+  resolution = 0.001,
+  contours   = TRUE
+)
+export_qml_style("example_bay_suitability.tif")
+```
+
+Load `example_bay_suitability.tif` into QGIS via **Layer → Add Layer → Add
+Raster Layer**, then right-click the layer and choose **Load Layer Style** to
+apply the `.qml` file.
+
+The GeoTIFF contains seven bands:
+
+| Band | Name | Description |
+|------|------|-------------|
+| 1 | `suitability` | Continuous score [0, 1] |
+| 2 | `excluded_mask` | 1 = hard-excluded by a threshold |
+| 3 | `n_observations` | Survey points per raster cell |
+| 4 | `dist_to_nearest_m` | Distance to nearest survey point (m) |
+| 5 | `n_layers_scored` | Number of variables contributing to the score |
+| 6 | `confidence` | Per-location confidence under evidence weighting; `NA` under rank weighting |
+| 7 | `insufficient_mask` | 1 = the model declined to classify this location |
+
+Bands 3, 4, 6 and 7 are the ones that say how much to trust band 1: band 1
+will interpolate a confident-looking score across water nobody surveyed, so
+style band 4 and mask beyond a few point-spacings before showing the map to
+anyone. For band 7, load the raster a second time and apply
+`example_bay_suitability_insufficient.qml` — locations the model declined to
+classify are held out of the band 1 interpolation rather than asserting a value
+into it, and the overlay draws them as their own grey class rather than leaving
+a viewer to read the gap as a low score.
+
+Band 5 is particularly useful as a data-coverage overlay: cells where only 2–3
+variables were scored are visually distinguishable from cells with full data.
+
+---
+
+## Inspecting component scores
+
+The result dataframe includes a `score_<variable>` column for every variable
+that was scored. Comparing these helps diagnose which environmental factor is
+the main limiting constraint at a site.
+
+```{r component-scores}
+score_cols <- grep("^score_", names(result), value = TRUE)
+# Mean component score per variable (higher = more suitable)
+col_means <- sort(colMeans(result[score_cols], na.rm = TRUE))
+print(round(col_means, 3))
+```
+
+Variables scoring consistently below 0.5 are the main limiting factors for
+*Ostrea edulis* at this site. Scores near 1.0 indicate that variable is not
+constraining growth.
+
+---
+
+## Step 9: pH and aragonite saturation scoring
+
+pH and aragonite saturation state (Ω_arag) are scored for all 17 species. If
+`ph` and `alkalinity` are present in the merged survey data, `predict_oyster()`
+computes `omega_aragonite` automatically via `calculate_aragonite()` before
+the scoring step — no manual pre-processing is needed.
+
+```{r aragonite-check}
+# Verify aragonite was auto-calculated and scored
+"omega_aragonite"  %in% names(result)      # column present
+"score_ph"         %in% names(result)      # pH scored
+"score_omega_aragonite" %in% names(result) # aragonite scored
+
+# Distribution of omega_aragonite across Example Bay
+summary(result$omega_aragonite)
+```
+
+If your sensor does not record alkalinity, you can estimate Ω_arag from typical
+open-ocean values for your region and supply it as a pre-computed column, or
+omit it — the scoring model will redistribute its weight across remaining variables.
+
+```{r aragonite-manual, eval = FALSE}
+# Manual calculation: sensors gave pH only, alkalinity approximated
+df$alkalinity <- 2300   # µmol/kg — representative NE Atlantic value
+df$omega_aragonite <- calculate_aragonite(
+  pH          = df$ph,
+  alkalinity  = df$alkalinity,
+  temperature = df$temperature,
+  salinity    = df$salinity
+)
+```
+
+---
+
+## Step 10: Variable impact diagnostic
+
+`variable_impact()` summarises the contribution of each environmental variable
+to the suitability score across the dataset. It is the primary QA tool for
+understanding model behaviour and planning future surveys.
+
+```{r variable-impact}
+impact <- variable_impact(result, "ostrea_edulis")
+print(impact)
+```
+
+The output columns are:
+
+- **`norm_weight_pct`** — the variable's share of the total weight at a
+  typical fully-observed point.
+- **`mean_score`** — average per-variable score across non-excluded points.
+  Values below ~0.5 identify environmental bottlenecks at this site.
+- **`mean_contribution`** — `norm_weight_pct × mean_score / 100`. The net
+  weighted contribution to the suitability score. Highest-impact variables
+  have both high weight and high score.
+- **`pct_coverage`** — percentage of non-excluded points where this variable
+  was observed (non-NA). Low values indicate data sparsity.
+
+```{r variable-impact-explore}
+# Variables scoring below 0.5 are potential site limiters
+impact[impact$mean_score < 0.5, c("variable", "norm_weight_pct", "mean_score")]
+
+# Variables with sparse data coverage
+impact[impact$pct_coverage < 80, c("variable", "pct_coverage")]
+```
+
+Use `sort_by = "pct_coverage"` to prioritise sensor deployment for the next
+survey, or `sort_by = "mean_score"` to focus on the worst-performing variables.
+
+---
+
+## Step 11: Fine-scale habitat area analysis
+
+`area_summary()` converts the point-based result into habitat area estimates
+at sub-hectare resolution. This is especially useful for restoration planning,
+where the difference between 200 m² and 800 m² of suitable habitat is
+operationally significant.
+
+```{r area-summary}
+# Auto-estimate cell size from median nearest-neighbour spacing
+s <- area_summary(result, verbose = TRUE)
+```
+
+The function prints a concise summary to the console. The returned list
+contains three elements:
+
+```{r area-summary-explore}
+# Per-class breakdown
+s$class_summary[, c("class", "area_m2", "area_ha", "pct_total_area",
+                    "mean_suitability")]
+
+# Totals
+s$total[c("surveyed_area_m2", "suitable_area_m2", "pct_suitable", "cell_size_m")]
+
+# Contiguous patches of High + Moderate suitability
+head(s$patches)
+
+# Patches meeting the OSPAR 100 m² viable area threshold
+viable <- s$patches[s$patches$viable, ]
+cat(nrow(viable), "viable patches; largest:", round(max(viable$area_m2)), "m²\n")
+```
+
+For ROV or AUV surveys with a known fixed grid resolution, supply it explicitly
+to avoid auto-estimation error:
+
+```{r area-summary-known, eval = FALSE}
+# 5 m ROV grid survey
+s5m <- area_summary(result, cell_size_m = 5, viable_area_m2 = 100)
+
+# 25 m ADCP trackline survey, larger minimum viable unit for production scale
+s25m <- area_summary(result, cell_size_m = 25, viable_area_m2 = 500)
+```
+
+---
+
+## Step 12: Tolerance curve visualisation
+
+`plot_tolerance()` draws the mathematical scoring function for any scored
+variable directly from the species tolerance parameters — no dataset required.
+This is useful for QA (confirming threshold values match published literature),
+stakeholder reporting ("here is exactly what the model rewards"), and creating
+publication-quality figures.
+
+```{r plot-tolerance-temp, fig.height = 5}
+# Temperature scoring curve with zone shading
+plot_tolerance("ostrea_edulis", "temperature")
+```
+
+```{r plot-tolerance-seasons, fig.height = 5}
+# All four seasons overlaid on a single plot
+plot_tolerance("ostrea_edulis", "temperature", season = "all")
+```
+
+```{r plot-tolerance-oa, fig.height = 5}
+# Ocean acidification variables
+plot_tolerance("ostrea_edulis", "ph")
+plot_tolerance("ostrea_edulis", "omega_aragonite")
+```
+
+```{r plot-tolerance-do, fig.height = 5}
+# Dissolved oxygen: compare tolerance between species
+plot_tolerance("ostrea_edulis",        "dissolved_oxygen")
+plot_tolerance("crassostrea_iredalei", "dissolved_oxygen")
+```
+
+Curves are colour-coded: green background = optimal zone, orange =
+acceptable/poor, red = hard-excluded. Dashed red vertical lines show the
+exclusion thresholds. The function returns a `ggplot2` object invisibly, so
+it can be saved or modified:
+
+```{r plot-tolerance-save, eval = FALSE}
+p <- plot_tolerance("ostrea_edulis", "salinity")
+ggplot2::ggsave("salinity_tolerance_O_edulis.png", p, width = 8, height = 5)
+```
+
+For data-driven response curves showing how the model actually responded to
+observed covariate values in this survey, use `sensitivity_analysis()` instead.
+
+---
+
+## Step 13: Evidence weighting
+
+Everything above used the default `weighting = "rank"`. The weights come from
+the published ranks and are renormalised over whatever the survey measured, so
+the Example Bay result is a confident number on [0, 1] with nothing on it to
+say that some of *O. edulis*'s seventeen scored variables were never observed,
+and that one of the ones that was is a substrate proxy we invented in Step 4.
+
+`weighting = "evidence"` changes the weights and nothing else. The scoring
+curves in Steps 6 and 12 are untouched — curve shape is where site-specific
+judgement legitimately lives. What changes is how the per-variable scores are
+combined: each variable's weight becomes its published prior `1 / rank`
+multiplied by the layer's measured **reliability** and its realised **spread**,
+normalised across the layers in play.
+
+Reliability multiplies the published prior and never replaces it. Weighting on
+measured reliability alone would promote whatever the instrument happens to
+measure well, which is circular; keeping the rank as the prior is what prevents
+that. Spread is the population SD of the layer's *score*: a variable that lands
+in the optimal band at every station scores 1.0 everywhere, distinguishes
+nothing about *this* survey, and takes no weight — however important the
+species finds it, and however precisely it was measured. A zero weight means
+"did not discriminate here", never "does not matter".
+
+### Measuring reliability
+
+Reliability is the correlation between two independent estimates of the same
+quantity, on one scale for every layer. Where the survey has repeat coverage —
+line against line, pass against pass — measure it directly:
+
+```{r reliability-replicates, eval = FALSE}
+rel <- c(
+  depth            = reliability_from_replicates(depth_pass1, depth_pass2),
+  current_velocity = reliability_from_replicates(vel_pass1,   vel_pass2)
+)
+```
+
+Where a layer has no repeat coverage, inject its **measured** per-observation
+error instead, so every layer's reliability stays on one scale rather than
+mixing measured correlations with assumed ones:
+
+```{r reliability-perturbation, eval = FALSE}
+# sigma is the between-pass disagreement over sqrt(2) -- NOT the within-cell
+# standard error, which describes scatter inside a cell and ignores errors that
+# are systematic within a pass.
+rel["slope"] <- reliability_from_perturbation(
+  depth_grid,
+  sigma  = 0.308 / sqrt(2),
+  derive = function(z) terrain_slope(z, cell = 1),  # propagate through the derivation
+  seed   = 1                                        # weights must be reproducible
+)
+```
+
+A layer with no measured reliability gets **no weight**. That is the rule that
+keeps the method honest: nothing enters the score on the strength of an
+argument alone, however good the argument. It is also why every candidate layer
+can be offered at once — the ones that do not reproduce demote themselves, so
+inclusion costs nothing.
+
+### Running it
+
+```{r evidence-run, eval = FALSE}
+rel <- c(depth = 0.930, current_velocity = 0.712, substrate_hardness = 0.402,
+         temperature = 0.88, salinity = 0.79)
+
+ev <- predict_oyster(
+  data             = survey_clean,
+  species          = "ostrea_edulis",
+  weighting        = "evidence",
+  reliability      = rel,
+  attempted_failed = "shear_stress",   # instrumented, returned unusable data
+  verbose          = TRUE
+)
+```
+
+`attempted_failed` is optional and worth using. It prices an instrument failure
+in units of the species' evidence base — `coverage_if_recovered` reports what
+the survey would have had if that payload had worked, which is usually more
+informative than reporting the failure on its own.
+
+### What comes back
+
+```{r evidence-inspect, eval = FALSE}
+attr(ev, "evidence_weights")    # the derivation, layer by layer
+attr(ev, "evidence_coverage")   # share of the evidence base actually observed
+
+# Both, as markdown, for a methods section
+cat(weight_table_md(ev), sep = "\n")
+```
+
+Every number in that table traces to either the published tolerance profile
+(the prior) or a measurement made on the survey itself (reliability, spread),
+so it is auditable line by line.
+
+The result carries `suitability_rank` and `suitability_class_rank` alongside
+the evidence columns, so the two weightings compare directly:
+
+```{r evidence-compare, eval = FALSE}
+table(rank = ev$suitability_class_rank, evidence = ev$suitability_class)
+mean(ev$suitability) - mean(ev$suitability_rank)
+```
+
+### Coverage, and why it is reported rather than applied
+
+`evidence_coverage()` is the share of the species' **total prior weight** that
+the survey observed. It is weight-based, not count-based: the
+`data_completeness` column from Step 6 counts variables, and so treats missing
+a rank-1 variable and a rank-6 variable as equal losses. Coverage does not —
+missing the most important variable costs six times what missing the least
+important one does.
+
+Coverage is reported once at survey level and never multiplied into the
+per-cell score. Multiplying would be technically honest and practically
+useless: it would drive every location below any class threshold on a
+low-coverage survey. Location-to-location variation is carried by `confidence`
+instead, which defaults to the share of the evidence weight actually observed
+at that location. Locations below `confidence_floor` (default 0.5) come back as
+`"Insufficient data"` rather than being handed a class they cannot support; the
+continuous score is still returned for them.
+
+```{r evidence-insufficient, eval = FALSE}
+summary(ev$confidence)
+sum(ev$suitability_class == "Insufficient data")
+```
+
+Those locations count toward the surveyed area in `area_summary()` — that
+ground was surveyed — but never toward the suitable area, and they are excluded
+from patch analysis and from the top-sites list. A location the model declined
+to classify cannot be recommended as a site.
+
+---
+
+## Next steps
+
+- **Validation** — if you have historical presence/absence records for the
+  site, pass them to `validate_against_records()` to calculate AUC, TSS, F1,
+  and Brier score against model predictions.
+- **Bayesian tolerance updating** — `update_species_tolerances()` can refine
+  the *O. edulis* scoring parameters from field observations at this site.
+- **Multi-species comparison** — run the same workflow for `"magallana_gigas"`
+  and call `compare_species()` to see which species is better suited to each
+  grid cell. Useful for restoration target selection.
+- **Sensitivity analysis** — `sensitivity_analysis()` produces partial
+  dependence curves showing how suitability varies with each variable at the
+  observed covariate values in this survey (data-driven, contrast to
+  `plot_tolerance()` which is parameter-driven).
+- **Reliability from a real survey** — the reliability figures in Step 13 are
+  illustrative. On a survey with genuine repeat coverage, derive them with
+  `reliability_from_replicates()` on the overlapping cells rather than typing
+  them in.
+- **Live data** — `fetch_live_environmental_data()` can replace the simulated
+  temperature and salinity with real-time CMEMS model output or ICES
+  observational data; see `?oystermapR_live_config` for credential setup.
+
+---
+
+## Session info
+
+```{r session-info}
+sessionInfo()
+```

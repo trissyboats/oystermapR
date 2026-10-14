@@ -28,3 +28,13 @@
 ^cran_check\.sh$
 ^cran-comments\.md$
 ^CRAN-SUBMISSION$
+^oystermapR_walkthrough\.R$
+^oystermapR_output$
+^make_docs\.sh$
+^lineage_walkthrough\.R$
+^test_evidence_weighting\.R$
+^Claude outputs$
+^.*\.tar\.gz$
+^oystermapR_template\.R$
+^release_.*\.sh$
+^submit_cran_rstudio\.R$

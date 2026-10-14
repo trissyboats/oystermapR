@@ -53,8 +53,8 @@ projected CRS (e.g. \code{"EPSG:32630"}) if your coordinates are in metres.}
 \item{overwrite}{Logical. Overwrite existing file (default \code{TRUE}).}
 }
 \value{
-The output file path (invisibly). Also writes a \code{.qml} QGIS style
-file alongside the \code{.tif} automatically.
+The output file path (invisibly). Also writes \code{.qml} QGIS style
+files alongside the \code{.tif} automatically.
 }
 \description{
 Takes the scored point dataset from \code{\link[=predict_oyster]{predict_oyster()}} and produces a
@@ -63,7 +63,7 @@ interpolation -- the same technique used by systems like Lowrance BioBase.
 The result looks like a fluid heat surface over your survey area rather than
 isolated point squares.
 
-The output GeoTIFF contains five bands:
+The output GeoTIFF contains seven bands:
 \enumerate{
 \item \strong{suitability} -- IDW-interpolated score [0, 1]. Use this for the heatmap.
 \item \strong{excluded_mask} -- 1 where a survey point was hard-excluded, 0 otherwise.
@@ -73,12 +73,23 @@ The output GeoTIFF contains five bands:
 nearest survey point (use as a QGIS transparency mask to fade extrapolated areas).
 \item \strong{n_layers_scored} -- number of environmental variables that contributed to
 the suitability score at each survey point (data completeness overlay).
+\item \strong{confidence} -- per-location confidence [0, 1] under evidence
+weighting; \code{NA} throughout under rank weighting, which has no notion of it.
+\item \strong{insufficient_mask} -- 1 where the model declined to classify the
+location (below \code{confidence_floor}), 0 otherwise. Those points are held
+out of band 1 rather than asserting a suitability into the surface, and
+\code{\link[=export_qml_style]{export_qml_style()}} writes an overlay style for this band so they read as
+a class in QGIS instead of as a hole in the map.
 }
+
+Bands 3, 4, 6 and 7 are the ones that say how much to trust band 1. Band 1
+will interpolate a confident-looking score across water nobody surveyed.
 }
 \examples{
 sample_csv <- system.file("extdata", "sample_survey.csv", package = "oystermapR")
 result <- predict_oyster(sample_csv, "ostrea_edulis", verbose = FALSE)
 out_tif <- file.path(tempdir(), "oyster_heatmap.tif")
-export_geotiff(result, out_tif)
+# A coarse grid keeps the example fast; use the default resolution for real work.
+export_geotiff(result, out_tif, resolution = 0.001)
 file.exists(out_tif)
 }
